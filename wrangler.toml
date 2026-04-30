@@ -1,0 +1,8 @@
+name = "music-inspection-api"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "music-inspection-db"
+database_id = "待填入"
