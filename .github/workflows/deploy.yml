@@ -1,0 +1,20 @@
+name: 🚀 部署音樂置換點檢APP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-pages:
+    name: 部署前端 → Cloudflare Pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: music-inspection
+          directory: .
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
