@@ -341,10 +341,10 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
     <div class="card-t"><span class="card-icon ci-blue">◉</span>盤點部別 / 課別</div>
     <div class="g2">
       <div class="fg"><label class="fl">盤點部別 <span class="req">*</span></label>
-        <select class="fc" id="dept"><option value="">請選擇</option><option value="d1">盤點一部</option><option value="d2">盤點二部</option></select></div>
+        <select class="fc" id="dept" onchange="onDeptChange()"><option value="">請選擇</option><option value="d1">盤點一部</option><option value="d2">盤點二部</option></select></div>
       <div class="fg"><label class="fl">盤點課別 <span class="req">*</span></label>
         <select class="fc" id="crs" onchange="onCC()">
-          <option value="">請選擇</option><option value="n1">北一課</option><option value="n2">北二課</option><option value="n3">北三課</option><option value="n4">北四課</option><option value="tz">桃竹課</option><option value="tc">台中課</option><option value="jn">嘉南課</option><option value="gp">高屏課</option>
+          <option value="">請先選擇部別</option>
         </select></div>
     </div>
   </div>
@@ -476,7 +476,6 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
       </div>
       <div class="ir">
         <button class="btn btn-primary btn-sm" onclick="document.getElementById('sfMS').click()">↑ 匯入 Excel</button>
-        <button class="btn btn-ghost btn-sm" onclick="lsSt()">載入範例資料</button>
       </div>
       <input type="file" id="sfMS" class="fi" accept=".xlsx,.xls" onchange="impMSt(this)">
       <div id="stMsg"></div>
@@ -510,7 +509,6 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
       </div>
       <div class="ir">
         <button class="btn btn-primary btn-sm" onclick="document.getElementById('sfMP').click()">↑ 匯入 Excel</button>
-        <button class="btn btn-ghost btn-sm" onclick="lsPp()">載入範例資料</button>
       </div>
       <input type="file" id="sfMP" class="fi" accept=".xlsx,.xls" onchange="impMPp(this)">
       <div id="ppMsg"></div>
@@ -981,6 +979,16 @@ async function apiPut(id,record){
   }catch(e){return{error:e.message};}
   finally{showLoading(false);}
 }
+async function apiDeleteRecord(id){
+  if(!API_READY){records=records.filter(r=>r.id!=id);return{success:true};}
+  showLoading(true);
+  try{
+    const res=await fetch(`${API}/api/records/${id}`,{method:'DELETE'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    return{success:true};
+  }catch(e){return{error:e.message};}
+  finally{showLoading(false);}
+}
 
 let _confirmResolve=null;
 function showConfirm(msg){
@@ -1003,16 +1011,45 @@ async function doLogout(){
   document.getElementById('loginErr').textContent='';
   sw('pb');
 }
-function doLogin(){
+async function doLogin(){
   const u=document.getElementById('loginUser').value.trim();
   const p=document.getElementById('loginPass').value;
-  if(u==='Reyi945'&&p==='879123'){
-    document.getElementById('loginOverlay').style.display='none';
-    sessionStorage.setItem('mi_auth','1');
-  }else{
-    document.getElementById('loginErr').textContent='帳號或密碼錯誤，請重新輸入';
-    document.getElementById('loginPass').value='';
-    document.getElementById('loginPass').focus();
+  if(!u||!p){
+    document.getElementById('loginErr').textContent='請輸入帳號與密碼';
+    return;
+  }
+  const btn=document.querySelector('.login-btn');
+  btn.disabled=true;
+  btn.textContent='驗證中…';
+  document.getElementById('loginErr').textContent='';
+  try{
+    const res=await fetch('https://music-inspection-api.a0955944828.workers.dev/api/auth',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({USER_ID:u,PSW:p})
+    });
+    const data=await res.json();
+    const code=(data.MSG||'').split(' ')[0];
+    if(code==='000'){
+      document.getElementById('loginOverlay').style.display='none';
+      sessionStorage.setItem('mi_auth','1');
+      sessionStorage.setItem('mi_user',u);
+    }else{
+      const msgs={
+        '100':'帳號或密碼錯誤，請重新輸入',
+        '200':'AD 認證錯誤，請聯絡管理員',
+        '998':'系統暫時無法使用，請稍後再試',
+        '999':'系統發生錯誤，請聯絡管理員'
+      };
+      document.getElementById('loginErr').textContent=msgs[code]||'系統發生錯誤，請聯絡管理員';
+      document.getElementById('loginPass').value='';
+      document.getElementById('loginPass').focus();
+    }
+  }catch(e){
+    document.getElementById('loginErr').textContent='網路連線異常，請確認後重試';
+  }finally{
+    btn.disabled=false;
+    btn.textContent='登　入';
   }
 }
 function checkAuth(){
@@ -1099,6 +1136,34 @@ function swM(id){
   document.querySelectorAll('.stb').forEach(t=>t.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   ['ms','mst','mq'].forEach((s,i)=>{if(s===id)document.querySelectorAll('.stb')[i].classList.add('on');});
+}
+function onDeptChange(){
+  const dept=gv('dept');
+  const crs=document.getElementById('crs');
+  // 重置課別
+  crs.innerHTML='';
+  if(!dept){
+    crs.innerHTML='<option value="">請先選擇部別</option>';
+    return;
+  }
+  const d1Courses=[{v:'n1',t:'北一課'},{v:'n2',t:'北二課'},{v:'n3',t:'北三課'},{v:'n4',t:'北四課'},{v:'tz',t:'桃竹課'}];
+  const d2Courses=[{v:'tc',t:'台中課'},{v:'jn',t:'嘉南課'},{v:'gp',t:'高屏課'}];
+  const courses=dept==='d1'?d1Courses:d2Courses;
+  const defaultOpt=document.createElement('option');
+  defaultOpt.value='';
+  defaultOpt.textContent='請選擇';
+  crs.appendChild(defaultOpt);
+  courses.forEach(c=>{
+    const opt=document.createElement('option');
+    opt.value=c.v;
+    opt.textContent=c.t;
+    crs.appendChild(opt);
+  });
+  // 重置已選的店舖和人員
+  selSt=null;selPp=null;
+  document.getElementById('stLC').innerHTML='<div class="et">請選擇課別，或點選「手動新增」</div>';
+  document.getElementById('ppLC').innerHTML='<div class="et">請先選擇課別以載入人員名單</div>';
+  document.getElementById('ppSel').style.display='none';
 }
 function onCC(){
   selSt=null;selPp=null;
@@ -1291,7 +1356,7 @@ async function renderCL(){
     const hasE=lat&&lat.editLog&&lat.editLog.length>0;
     let sc='st-no',st='未點檢';if(lat){sc=hasE?'st-ed':'st-ok';st=hasE?'已修改':'已完成';}
     const ei=hasE?`<div class="mdb">最後修改：${lat.editLog[lat.editLog.length-1].editor}　${lat.editLog[lat.editLog.length-1].time}</div>`:'';
-    const ac=lat?`<button class="btn btn-ghost btn-xs" onclick="viewR('${lat.id}')">查詢</button><button class="btn btn-purple btn-xs" onclick="openER('${lat.id}')">修改</button>`:`<span style="font-size:var(--fs-sm);font-family:var(--font);color:var(--c-hint);">尚未點檢</span>`;
+    const ac=lat?`<button class="btn btn-ghost btn-xs" onclick="viewR('${lat.id}')">查詢</button><button class="btn btn-purple btn-xs" onclick="openER('${lat.id}')">修改</button><button class="btn btn-red btn-xs" onclick="delRecord('${lat.id}','${n}')">刪除</button>`:`<span style="font-size:var(--fs-sm);font-family:var(--font);color:var(--c-hint);">尚未點檢</span>`;
     return`<div class="cli"><div class="clih"><span class="clisn">${n}</span><span class="clist ${sc}">${st}</span><div class="clia">${ac}</div></div>${ei}</div>`;
   }).join('');
   document.getElementById('clCont').innerHTML=hdr+items;
@@ -1312,8 +1377,76 @@ function openER(id){
     const rH=q.hasReason?`<div class="reb ${aX?'show':''}" id="eRebBox"><div class="ret">音樂機上盒燈號顯示狀況（必填）</div>${NMR.map((rv,i)=>`<div class="rer ${eRsn===i?'sel':''}" onclick="setERsn(${i},this)"><div class="re-c"><div class="re-d"></div></div><span class="re-t">${rv}</span></div>`).join('')}</div>`:'';
     return`<div style="margin-bottom:14px;"><div class="qt">${q.text}<span class="req" style="margin-left:4px;">＊</span></div><div class="rg"><div class="ri ${aV?'rv':''}" onclick="setEA(${q.id},'V',this)"><div class="rc"><div class="rd"></div></div><span class="rl">V — ${q.v}</span></div><div class="ri ${aX?'rx':''}" onclick="setEA(${q.id},'X',this)"><div class="rc"><div class="rd"></div></div><span class="rl">X — ${q.x}</span></div></div>${rH}</div>`;
   }).join('');
-  document.getElementById('mEditC').innerHTML=`<div class="mt">修改點檢記錄</div><div class="ms">${r.store}　${CN[r.course]}</div><div class="al al-w" style="margin-bottom:14px;">修改將留存記錄，請填寫修改人姓名。</div><div class="fg"><label class="fl">點檢日期</label><input class="fc" id="edDate" type="date" value="${r.date}"></div>${qH}<div class="div"></div><div class="fg"><label class="fl">修改人姓名 <span class="req">*</span></label><input class="fc" id="edN" placeholder="請輸入修改人姓名"></div><div class="ma"><button class="btn btn-ghost" onclick="closeM('mEdit')">取消</button><button class="btn btn-primary" onclick="confEdit()">儲存修改</button></div>`;
+  document.getElementById('mEditC').innerHTML=`<div class="mt">修改點檢記錄</div><div class="ms">${r.store}　${CN[r.course]}</div><div class="al al-w" style="margin-bottom:14px;">修改將留存記錄，請填寫修改人姓名。</div><div class="fg"><label class="fl">點檢日期</label><input class="fc" id="edDate" type="date" value="${r.date}"></div>${qH}<div class="div"></div><div class="fg"><label class="fl">修改人姓名 <span class="req">*</span></label><input class="fc" id="edN" placeholder="請輸入修改人姓名"></div><div class="ma" style="flex-direction:column;gap:8px;"><div style="display:flex;gap:8px;"><button class="btn btn-ghost" style="flex:1;" onclick="closeM('mEdit')">取消</button><button class="btn btn-primary" style="flex:2;" onclick="confEdit()">儲存修改</button></div><button class="btn btn-red btn-sm" style="width:100%;" onclick="delRecord('${r.id}','${r.store}')">🗑 刪除此筆記錄</button></div>`;
   openM('mEdit');
+}
+function delRecord(id,storeName){
+  let dm=document.getElementById('mDel');
+  if(!dm){
+    dm=document.createElement('div');
+    dm.id='mDel';
+    dm.className='modal-overlay';
+    const box=document.createElement('div');
+    box.className='md';
+    const title=document.createElement('div');
+    title.className='mt';
+    title.style.color='var(--c-red)';
+    title.textContent='刪除點檢記錄';
+    const msg=document.createElement('div');
+    msg.className='ms';
+    msg.id='mDelMsg';
+    const fg=document.createElement('div');
+    fg.className='fg';
+    fg.style.marginTop='14px';
+    const lbl=document.createElement('label');
+    lbl.className='fl';
+    lbl.textContent='請輸入管理密碼';
+    const inp=document.createElement('input');
+    inp.className='fc';
+    inp.id='mDelPw';
+    inp.type='password';
+    inp.placeholder='輸入密碼 9588';
+    fg.appendChild(lbl);
+    fg.appendChild(inp);
+    const ma=document.createElement('div');
+    ma.className='ma';
+    const btnCancel=document.createElement('button');
+    btnCancel.className='btn btn-ghost';
+    btnCancel.textContent='取消';
+    btnCancel.onclick=function(){dm.classList.remove('open');};
+    const btnDel=document.createElement('button');
+    btnDel.className='btn btn-red';
+    btnDel.textContent='確認刪除';
+    btnDel.onclick=function(){confDel();};
+    ma.appendChild(btnCancel);
+    ma.appendChild(btnDel);
+    box.appendChild(title);
+    box.appendChild(msg);
+    box.appendChild(fg);
+    box.appendChild(ma);
+    dm.appendChild(box);
+    document.body.appendChild(dm);
+  }
+  document.getElementById('mDelMsg').textContent='確定要刪除「'+storeName+'」的點檢記錄？此操作無法復原。';
+  document.getElementById('mDelPw').value='';
+  const dmEl=document.getElementById('mDel');
+  dmEl._delId=id;
+  dmEl._delName=storeName;
+  dmEl.classList.add('open');
+  setTimeout(function(){const pw=document.getElementById('mDelPw');if(pw)pw.focus();},300);
+}
+async function confDel(){
+  const dm=document.getElementById('mDel');
+  const pw=document.getElementById('mDelPw').value;
+  if(pw!=='9588'){showToast('密碼錯誤，刪除取消');document.getElementById('mDelPw').value='';return;}
+  const id=dm._delId,storeName=dm._delName;
+  dm.classList.remove('open');
+  const result=await apiDeleteRecord(id);
+  if(result.error){alert('刪除失敗：'+result.error);return;}
+  records=records.filter(r=>r.id!=id);
+  closeM('mEdit');
+  renderCL();
+  showToast('「'+storeName+'」記錄已刪除');
 }
 function setEA(qid,val,el){eAns[qid]=val;const p=el.closest('div[style*="margin-bottom:14px"]');p.querySelectorAll('.ri').forEach(r=>{r.classList.remove('rv');r.classList.remove('rx');});el.classList.add(val==='V'?'rv':'rx');const rb=document.getElementById('eRebBox');if(rb){if(val==='X')rb.classList.add('show');else{rb.classList.remove('show');eRsn=null;rb.querySelectorAll('.rer').forEach(r=>r.classList.remove('sel'));}}}
 function setERsn(i,el){eRsn=i;document.querySelectorAll('#eRebBox .rer').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');}
