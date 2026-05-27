@@ -85,12 +85,35 @@ async function handleAuth(request) {
     return json({ MSG: '429 請求過於頻繁，請稍後再試' }, 429);
   }
   const body = await request.json();
-  const r = await fetch('https://eip.fme.com.tw/FMEIP/AasApi/CheckUserId', {
+
+  // 同時嘗試 JSON 與 Form 格式，取第一個成功的
+  const fmeUrl = 'https://eip.fme.com.tw/FMEIP/AasApi/CheckUserId';
+
+  // 先試 application/json
+  let r = await fetch(fmeUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ USER_ID: body.USER_ID, PSW: body.PSW }),
   });
-  const data = await r.json();
+  let data = await r.json();
+
+  // 若 JSON 回傳 100，再試 form-urlencoded
+  const code = (data.MSG || '').split(' ')[0];
+  if (code === '100') {
+    const form = new URLSearchParams();
+    form.set('USER_ID', body.USER_ID);
+    form.set('PSW', body.PSW);
+    const r2 = await fetch(fmeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
+    });
+    const data2 = await r2.json();
+    // 若 form 格式結果不同，回傳 form 的結果
+    const code2 = (data2.MSG || '').split(' ')[0];
+    if (code2 !== '100') data = data2;
+  }
+
   return json(data);
 }
 
