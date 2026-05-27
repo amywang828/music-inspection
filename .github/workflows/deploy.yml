@@ -68,5 +68,5 @@ jobs:
             "https://run.googleapis.com/v2/projects/c000-493901/locations/asia-east1/services/music-inspect" \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"template\":{\"containers\":[{\"image\":\"$IMAGE\"}]}}" | \
+            -d "{\"template\":{\"containers\":[{\"image\":\"$IMAGE\"}]},\"annotations\":{\"run.googleapis.com/invoker-iam-disabled\":\"true\",\"run.googleapis.com/ingress\":\"all\"}}" | \
             python3 -c "import sys,json; r=json.load(sys.stdin); print('OK:', r.get('name',''), r.get('error',''))"
