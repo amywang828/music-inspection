@@ -1,0 +1,18 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect', '.']
+    dir: 'gcp'
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - music-inspect
+      - --image=asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect
+      - --region=asia-east1
+      - --platform=managed
+      - --port=8080
+images:
+  - 'asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect'

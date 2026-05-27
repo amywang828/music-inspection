@@ -34,3 +34,31 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  deploy-gcp:
+    name: 部署 GCP Cloud Run（auth proxy）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 認證 GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      - name: 設定 gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: c000-493901
+      - name: 設定 Docker 認證
+        run: gcloud auth configure-docker asia-east1-docker.pkg.dev --quiet
+      - name: 建置並推送 Docker 映像
+        run: |
+          docker build -t asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect gcp/
+          docker push asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect
+      - name: 部署到 Cloud Run
+        run: |
+          gcloud run deploy music-inspect \
+            --image=asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect \
+            --region=asia-east1 \
+            --platform=managed \
+            --port=8080 \
+            --quiet
