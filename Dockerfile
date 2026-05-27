@@ -21,7 +21,7 @@ RUN printf 'server {\n\
         proxy_pass_request_headers on;\n\
     }\n\
 \n\
-    # 前端靜態檔案\n\
+    # 前端 SPA：所有路徑都回傳 index.html\n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
     }\n\

@@ -1,0 +1,14 @@
+node_modules/
+gcp/
+worker.js
+wrangler.toml
+gas.js
+CLAUDE.md
+README.md
+TECH_SPEC.md
+*.docx
+*.md
+package.json
+package-lock.json
+.gitignore
+.github/

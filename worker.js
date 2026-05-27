@@ -1,7 +1,22 @@
-// [SECURITY] CORS 限縮為正式前端域名，拒絕其他來源
-const ALLOWED_ORIGIN = 'https://music-inspection.pages.dev';
+// [SECURITY] CORS 允許 Cloudflare Pages 與 GCP Cloud Run 兩個前端域名
+const ALLOWED_ORIGINS = [
+  'https://music-inspection.pages.dev',
+  'https://music-inspect-403438157899.asia-east1.run.app',
+];
+
+function getCorsHeaders(request) {
+  const origin = request.headers.get('Origin') || '';
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
+
+// 保留向下相容（部分函式直接使用）
 const corsHeaders = {
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+  'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
   'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
@@ -25,7 +40,7 @@ function checkRateLimit(ip) {
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+      return new Response(null, { headers: getCorsHeaders(request) });
     }
 
     const url = new URL(request.url);
@@ -69,10 +84,10 @@ export default {
         if (method === 'DELETE') return await deleteStaff(request, env, staffMatch[1]);
       }
 
-      return json({ error: 'Not found' }, 404);
+      return json({ error: 'Not found' }, 404, request);
     } catch (e) {
       // [SECURITY] 不回傳內部錯誤細節
-      return json({ error: 'Internal server error' }, 500);
+      return json({ error: 'Internal server error' }, 500, request);
     }
   }
 };
@@ -82,7 +97,7 @@ async function handleAuth(request) {
   // [SECURITY] 速率限制：每 IP 每分鐘最多 10 次
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   if (!checkRateLimit(ip)) {
-    return json({ MSG: '429 請求過於頻繁，請稍後再試' }, 429);
+    return json({ MSG: '429 請求過於頻繁，請稍後再試' }, 429, request);
   }
   const body = await request.json();
 
@@ -96,7 +111,7 @@ async function handleAuth(request) {
     body: JSON.stringify({ USER_ID: body.USER_ID, PSW: body.PSW }),
   });
   const data = await r.json();
-  return json(data);
+  return json(data, 200, request);
 }
 
 // ── Records ───────────────────────────────────────────────────
@@ -225,10 +240,11 @@ async function deleteStaff(request, env, id) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-function json(data, status = 200) {
+function json(data, status = 200, req = null) {
+  const headers = req ? getCorsHeaders(req) : corsHeaders;
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...headers, 'Content-Type': 'application/json' },
   });
 }
 

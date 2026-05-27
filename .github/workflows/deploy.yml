@@ -58,7 +58,7 @@ jobs:
             docker login -u oauth2accesstoken --password-stdin https://asia-east1-docker.pkg.dev
       - name: 建置並推送 Docker 映像
         run: |
-          docker build -t asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect gcp/
+          docker build -t asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect .
           docker push asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect
       - name: 部署到 Cloud Run（REST API）
         run: |
