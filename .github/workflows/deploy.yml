@@ -40,14 +40,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 認證 GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-      - name: 設定 gcloud
+      - name: 安裝 gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: c000-493901
+      - name: 認證 GCP（authorized_user）
+        run: |
+          echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp-creds.json
+          gcloud auth login --cred-file=/tmp/gcp-creds.json --quiet
+          gcloud config set project c000-493901
       - name: 設定 Docker 認證
         run: gcloud auth configure-docker asia-east1-docker.pkg.dev --quiet
       - name: 建置並推送 Docker 映像
