@@ -40,24 +40,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 安裝 gcloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-      - name: 認證 GCP（authorized_user）
+      - name: 取得 GCP Access Token
+        id: gcp_token
         run: |
-          echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp-creds.json
-          gcloud auth login --cred-file=/tmp/gcp-creds.json --quiet
-          gcloud config set project c000-493901
-      - name: 設定 Docker 認證
-        run: gcloud auth configure-docker asia-east1-docker.pkg.dev --quiet
+          CREDS='${{ secrets.GCP_CREDENTIALS }}'
+          CLIENT_ID=$(echo "$CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['client_id'])")
+          CLIENT_SECRET=$(echo "$CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['client_secret'])")
+          REFRESH_TOKEN=$(echo "$CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['refresh_token'])")
+          ACCESS_TOKEN=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
+            -H "Content-Type: application/json" \
+            -d "{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"grant_type\":\"refresh_token\"}" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+          echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
+      - name: Docker 登入 Artifact Registry
+        run: |
+          echo "${{ steps.gcp_token.outputs.access_token }}" | \
+            docker login -u oauth2accesstoken --password-stdin https://asia-east1-docker.pkg.dev
       - name: 建置並推送 Docker 映像
         run: |
           docker build -t asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect gcp/
           docker push asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect
-      - name: 部署到 Cloud Run
+      - name: 部署到 Cloud Run（REST API）
         run: |
-          gcloud run deploy music-inspect \
-            --image=asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect \
-            --region=asia-east1 \
-            --platform=managed \
-            --port=8080 \
-            --quiet
+          TOKEN="${{ steps.gcp_token.outputs.access_token }}"
+          IMAGE="asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect"
+          curl -s -X PATCH \
+            "https://run.googleapis.com/v2/projects/c000-493901/locations/asia-east1/services/music-inspect" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"template\":{\"containers\":[{\"image\":\"$IMAGE\"}]}}" | \
+            python3 -c "import sys,json; r=json.load(sys.stdin); print('OK:', r.get('name',''), r.get('error',''))"
