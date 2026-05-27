@@ -3,6 +3,7 @@
 ## 系統網址
 - 前端：https://music-inspection.pages.dev
 - API：https://music-inspection-api.a0955944828.workers.dev
+- GCP Auth Proxy：https://music-inspect-403438157899.asia-east1.run.app
 - GitHub：https://github.com/amywang828/music-inspection
 - Google Sheets：https://docs.google.com/spreadsheets/d/1wH0edfIlU4B4VzaDTFkzbHBfIMDTGOW81i1JCAUCQ98
 
@@ -14,7 +15,7 @@
 - `gas.js`：Google Apps Script 同步備份
 
 ## 登入資訊
-- APP 帳號：Reyi945 / 密碼：879123
+- APP 帳號：FME 企業帳號（eip.fme.com.tw 的員工帳號/密碼）
 - 請款明細密碼：9588
 - 刪除記錄密碼：9588
 
@@ -58,8 +59,23 @@
 git add .
 git commit -m "說明修改內容"
 git push
-# GitHub Actions 自動部署到 Cloudflare Pages（30秒）
+# GitHub Actions 自動同時部署：
+#   - Cloudflare Pages（前端）
+#   - Cloudflare Workers（後端 API）
+#   - GCP Cloud Run music-inspect（FME auth proxy）
 ```
 
-## Worker 手動部署
-dash.cloudflare.com → Workers → music-inspection-api → 編輯程式碼 → 部署
+## 驗證架構
+```
+使用者 → Cloudflare Pages → Worker /api/auth
+       → GCP Cloud Run /auth
+       → FME CheckUserId API（公司內網）
+```
+
+## GCP Cloud Run 手動重新部署
+```bash
+cd gcp
+gcloud run deploy music-inspect --source . --region asia-east1 --platform managed --port 8080
+gcloud run services update music-inspect --region=asia-east1 \
+  --update-annotations="run.googleapis.com/invoker-iam-disabled=true,run.googleapis.com/ingress=all"
+```
