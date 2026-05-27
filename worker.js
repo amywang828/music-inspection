@@ -88,7 +88,7 @@ async function handleAuth(request) {
 
   // 透過 GCP Cloud Run 代理呼叫 FME CheckUserId API
   // （Cloudflare IP 被 FME 封鎖，GCP 可正常存取公司內網）
-  const proxyUrl = 'https://vehicle-system-403438157899.asia-east1.run.app/auth';
+  const proxyUrl = 'https://music-inspect-403438157899.asia-east1.run.app/auth';
 
   const r = await fetch(proxyUrl, {
     method: 'POST',
