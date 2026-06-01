@@ -129,7 +129,7 @@ async function getRecords(request, env) {
   sql += ' ORDER BY created_at DESC';
 
   const { results } = await env.DB.prepare(sql).bind(...args).all();
-  return json(results);
+  return json(results, 200, request);
 }
 
 async function createRecord(request, env) {
@@ -139,7 +139,7 @@ async function createRecord(request, env) {
   const dup = await env.DB.prepare(
     'SELECT id FROM records WHERE course=? AND store=? AND substr(date,1,7)=?'
   ).bind(d.course, d.store, ym).first();
-  if (dup) return json({ error: '同月同店已有記錄', duplicate: true }, 409);
+  if (dup) return json({ error: '同月同店已有記錄', duplicate: true }, 409, request);
 
   const answers = typeof d.answers === 'string' ? d.answers : JSON.stringify(d.answers);
   await env.DB.prepare(
@@ -155,13 +155,13 @@ async function createRecord(request, env) {
     .bind(d.date, d.course, d.store).run();
 
   syncToSheets({ action: 'insert', record: d });
-  return json({ ok: true });
+  return json({ ok: true }, 200, request);
 }
 
 async function updateRecord(request, env, id) {
   const d = await request.json();
   const existing = await env.DB.prepare('SELECT edit_log FROM records WHERE id=?').bind(id).first();
-  if (!existing) return json({ error: '記錄不存在' }, 404);
+  if (!existing) return json({ error: '記錄不存在' }, 404, request);
 
   const log = JSON.parse(existing.edit_log || '[]');
   log.push({ editor: d.editor || 'unknown', time: new Date().toISOString() });
@@ -176,13 +176,13 @@ async function updateRecord(request, env, id) {
   ).run();
 
   syncToSheets({ action: 'update', id, record: d });
-  return json({ ok: true });
+  return json({ ok: true }, 200, request);
 }
 
 async function deleteRecord(request, env, id) {
   await env.DB.prepare('DELETE FROM records WHERE id=?').bind(id).run();
   syncToSheets({ action: 'delete', id });
-  return json({ ok: true });
+  return json({ ok: true }, 200, request);
 }
 
 // ── Stores ────────────────────────────────────────────────────
@@ -193,7 +193,7 @@ async function getStores(request, env) {
   if (course) { sql += ' WHERE course=?'; args.push(course); }
   sql += ' ORDER BY name';
   const { results } = await env.DB.prepare(sql).bind(...args).all();
-  return json(results);
+  return json(results, 200, request);
 }
 
 async function createStore(request, env) {
@@ -204,12 +204,12 @@ async function createStore(request, env) {
       'INSERT OR IGNORE INTO stores (course,name,type,grp,last_date,created_at) VALUES (?,?,?,?,?,?)'
     ).bind(s.course, s.name, s.type || 'M', s.grp || '', s.last_date || '', Date.now()).run();
   }
-  return json({ ok: true, count: items.length });
+  return json({ ok: true, count: items.length }, 200, request);
 }
 
 async function deleteStore(request, env, id) {
   await env.DB.prepare('DELETE FROM stores WHERE id=?').bind(id).run();
-  return json({ ok: true });
+  return json({ ok: true }, 200, request);
 }
 
 // ── Staff ─────────────────────────────────────────────────────
@@ -220,7 +220,7 @@ async function getStaff(request, env) {
   if (course) { sql += ' WHERE course=?'; args.push(course); }
   sql += ' ORDER BY name';
   const { results } = await env.DB.prepare(sql).bind(...args).all();
-  return json(results);
+  return json(results, 200, request);
 }
 
 async function createStaff(request, env) {
@@ -231,12 +231,12 @@ async function createStaff(request, env) {
       'INSERT OR IGNORE INTO staff (course,name,created_at) VALUES (?,?,?)'
     ).bind(s.course, s.name, Date.now()).run();
   }
-  return json({ ok: true, count: items.length });
+  return json({ ok: true, count: items.length }, 200, request);
 }
 
 async function deleteStaff(request, env, id) {
   await env.DB.prepare('DELETE FROM staff WHERE id=?').bind(id).run();
-  return json({ ok: true });
+  return json({ ok: true }, 200, request);
 }
 
 // ── Helpers ───────────────────────────────────────────────────
