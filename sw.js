@@ -1,4 +1,4 @@
-const CACHE = 'music-inspect-v3';
+const CACHE = 'music-inspect-v4';
 const ASSETS = [
   './index.html',
   './manifest.json',
