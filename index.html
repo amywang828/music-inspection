@@ -931,7 +931,16 @@ async function apiGet(course='',from='',to=''){
     if(to)     url+=`to=${to}&`;
     const res=await fetch(url);
     if(!res.ok)throw new Error('HTTP '+res.status);
-    return await res.json();
+    const data=await res.json();
+    // D1 欄位正規化：answers(JSON字串→物件)、snake_case→camelCase
+    return data.map(r=>({
+      ...r,
+      answers: typeof r.answers==='string'?JSON.parse(r.answers||'{}'):(r.answers||{}),
+      nmReason: r.nmReason||r.nm_reason||'',
+      passAll: r.passAll!==undefined?r.passAll:(r.pass_all===1||r.pass_all===true),
+      passCount: r.passCount!==undefined?r.passCount:(r.pass_count||0),
+      editLog: r.editLog||(typeof r.edit_log==='string'?JSON.parse(r.edit_log||'[]'):(r.edit_log||[])),
+    }));
   }catch(e){
     showToast('無法連接伺服器，顯示本機資料');
     return null;
