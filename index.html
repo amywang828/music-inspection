@@ -1563,8 +1563,8 @@ function xPay(rs,lb,from,to){
   const gt=allFee+DATA_FEE,tax=Math.round(gt*0.05),fin=gt+tax;
 
   // 部門計算
-  const d1rs=rs.filter(r=>r.dept==='盤點一部');
-  const d2rs=rs.filter(r=>r.dept==='盤點二部');
+  const d1rs=rs.filter(r=>r.dept==='盤點一部'||r.dept==='d1');
+  const d2rs=rs.filter(r=>r.dept==='盤點二部'||r.dept==='d2');
   const d1St=d1rs.reduce((s,r)=>s+calcFeeByRecord(r),0);
   const d2St=d2rs.reduce((s,r)=>s+calcFeeByRecord(r),0);
   const deptTotal=d1St+d2St+DATA_FEE;
