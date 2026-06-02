@@ -1286,7 +1286,9 @@ function renderQ(){
 }
 function setA(qid,val,el){
   ans[qid]=val;document.getElementById('qb-'+qid).querySelectorAll('.ri').forEach(r=>{r.classList.remove('rv');r.classList.remove('rx');});el.classList.add(val==='V'?'rv':'rx');
-  const rb=document.getElementById('rebBox');if(rb){if(val==='X')rb.classList.add('show');else{rb.classList.remove('show');nmR=null;rb.querySelectorAll('.rer').forEach(r=>r.classList.remove('sel'));}}
+  // 只有 hasReason 的題目（第4題）才控制燈號原因框
+  const q=questions.find(q=>q.id===qid);
+  if(q&&q.hasReason){const rb=document.getElementById('rebBox');if(rb){if(val==='X')rb.classList.add('show');else{rb.classList.remove('show');nmR=null;rb.querySelectorAll('.rer').forEach(r=>r.classList.remove('sel'));}}}
   updP();
 }
 function setNMR(i,el){nmR=i;document.querySelectorAll('.rer').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');}
