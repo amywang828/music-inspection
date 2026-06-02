@@ -129,7 +129,16 @@ async function getRecords(request, env) {
   sql += ' ORDER BY created_at DESC';
 
   const { results } = await env.DB.prepare(sql).bind(...args).all();
-  return json(results, 200, request);
+  // Worker 端正規化：answers JSON字串→物件、snake_case→camelCase
+  const normalized = results.map(r => ({
+    ...r,
+    answers: (() => { try { return typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {}); } catch(e) { return {}; } })(),
+    nmReason: r.nm_reason || '',
+    passAll: r.pass_all === 1,
+    passCount: r.pass_count || 0,
+    editLog: (() => { try { return typeof r.edit_log === 'string' ? JSON.parse(r.edit_log) : (r.edit_log || []); } catch(e) { return []; } })(),
+  }));
+  return json(normalized, 200, request);
 }
 
 async function createRecord(request, env) {
