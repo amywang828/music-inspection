@@ -150,14 +150,23 @@ async function createRecord(request, env) {
   ).bind(d.course, d.store, ym).first();
   if (dup) return json({ error: '同月同店已有記錄', duplicate: true }, 409, request);
 
+  // 相容 camelCase（前端）與 snake_case（直接匯入）
+  const nmReason  = d.nmReason  ?? d.nm_reason  ?? '';
+  const passAll   = d.passAll   ?? d.pass_all   ?? false;
+  const passCount = d.passCount ?? d.pass_count ?? 0;
+  const total     = d.total     ?? 0;
+  const editLog   = d.editLog   ?? d.edit_log   ?? '[]';
+
   const answers = typeof d.answers === 'string' ? d.answers : JSON.stringify(d.answers);
   await env.DB.prepare(
     `INSERT INTO records (id,store,staff,dept,course,date,answers,nm_reason,pass_all,pass_count,total,edit_log,created_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).bind(
     d.id, d.store, d.staff, d.dept || '', d.course, d.date,
-    answers, d.nm_reason || '', d.pass_all ? 1 : 0,
-    d.pass_count || 0, d.total || 0, '[]', Date.now()
+    answers, nmReason, passAll ? 1 : 0,
+    passCount, total,
+    typeof editLog === 'string' ? editLog : JSON.stringify(editLog),
+    Date.now()
   ).run();
 
   await env.DB.prepare('UPDATE stores SET last_date=? WHERE course=? AND name=?')
@@ -175,12 +184,18 @@ async function updateRecord(request, env, id) {
   const log = JSON.parse(existing.edit_log || '[]');
   log.push({ editor: d.editor || 'unknown', time: new Date().toISOString() });
 
+  // 相容 camelCase（前端）與 snake_case（直接匯入）
+  const nmReasonU  = d.nmReason  ?? d.nm_reason  ?? '';
+  const passAllU   = d.passAll   ?? d.pass_all   ?? false;
+  const passCountU = d.passCount ?? d.pass_count ?? 0;
+  const totalU     = d.total     ?? 0;
+
   const answers = typeof d.answers === 'string' ? d.answers : JSON.stringify(d.answers);
   await env.DB.prepare(
     'UPDATE records SET date=?,answers=?,nm_reason=?,pass_all=?,pass_count=?,total=?,edit_log=? WHERE id=?'
   ).bind(
-    d.date, answers, d.nm_reason || '',
-    d.pass_all ? 1 : 0, d.pass_count || 0, d.total || 0,
+    d.date, answers, nmReasonU,
+    passAllU ? 1 : 0, passCountU, totalU,
     JSON.stringify(log), id
   ).run();
 
