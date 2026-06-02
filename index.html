@@ -1408,19 +1408,6 @@ function delRecord(id,storeName){
     const msg=document.createElement('div');
     msg.className='ms';
     msg.id='mDelMsg';
-    const fg=document.createElement('div');
-    fg.className='fg';
-    fg.style.marginTop='14px';
-    const lbl=document.createElement('label');
-    lbl.className='fl';
-    lbl.textContent='請輸入管理密碼';
-    const inp=document.createElement('input');
-    inp.className='fc';
-    inp.id='mDelPw';
-    inp.type='password';
-    inp.placeholder='輸入密碼 9588';
-    fg.appendChild(lbl);
-    fg.appendChild(inp);
     const ma=document.createElement('div');
     ma.className='ma';
     const btnCancel=document.createElement('button');
@@ -1435,23 +1422,18 @@ function delRecord(id,storeName){
     ma.appendChild(btnDel);
     box.appendChild(title);
     box.appendChild(msg);
-    box.appendChild(fg);
     box.appendChild(ma);
     dm.appendChild(box);
     document.body.appendChild(dm);
   }
   document.getElementById('mDelMsg').textContent='確定要刪除「'+storeName+'」的點檢記錄？此操作無法復原。';
-  document.getElementById('mDelPw').value='';
   const dmEl=document.getElementById('mDel');
   dmEl._delId=id;
   dmEl._delName=storeName;
   dmEl.classList.add('open');
-  setTimeout(function(){const pw=document.getElementById('mDelPw');if(pw)pw.focus();},300);
 }
 async function confDel(){
   const dm=document.getElementById('mDel');
-  const pw=document.getElementById('mDelPw').value;
-  if(pw!=='9588'){showToast('密碼錯誤，刪除取消');document.getElementById('mDelPw').value='';return;}
   const id=dm._delId,storeName=dm._delName;
   dm.classList.remove('open');
   const result=await apiDeleteRecord(id);
