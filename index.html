@@ -1381,7 +1381,11 @@ function viewR(id){
 
 function openER(id){
   const r=records.find(rc=>rc.id==id);if(!r)return;
-  curEId=id;eAns={...r.answers};eRsn=r.nmReason?NMR.indexOf(r.nmReason):null;
+  curEId=id;
+  const rAns=typeof r.answers==='string'?JSON.parse(r.answers||'{}'):(r.answers||{});
+  eAns={...rAns};
+  const rNmR=r.nmReason||r.nm_reason||'';
+  eRsn=rNmR?NMR.indexOf(rNmR):null;
   const qH=questions.map(q=>{const aV=eAns[q.id]==='V',aX=eAns[q.id]==='X';
     const rH=q.hasReason?`<div class="reb ${aX?'show':''}" id="eRebBox"><div class="ret">音樂機上盒燈號顯示狀況（必填）</div>${NMR.map((rv,i)=>`<div class="rer ${eRsn===i?'sel':''}" onclick="setERsn(${i},this)"><div class="re-c"><div class="re-d"></div></div><span class="re-t">${rv}</span></div>`).join('')}</div>`:'';
     return`<div style="margin-bottom:14px;"><div class="qt">${q.text}<span class="req" style="margin-left:4px;">＊</span></div><div class="rg"><div class="ri ${aV?'rv':''}" onclick="setEA(${q.id},'V',this)"><div class="rc"><div class="rd"></div></div><span class="rl">V — ${q.v}</span></div><div class="ri ${aX?'rx':''}" onclick="setEA(${q.id},'X',this)"><div class="rc"><div class="rd"></div></div><span class="rl">X — ${q.x}</span></div></div>${rH}</div>`;
@@ -1465,7 +1469,7 @@ async function confEdit(){
   if(eAns[4]==='X'&&eRsn===null){alert('請選擇燈號顯示狀況');return;}
   const r=records.find(rc=>rc.id==curEId);if(!r)return;
   const now=new Date();const ts=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const newEditLog=[...r.editLog,{editor:ed,time:ts}];
+  const newEditLog=[...(r.editLog||r.edit_log||[]),{editor:ed,time:ts}];
   const pc=Object.values(eAns).filter(a=>a==='V').length;
   const edDate=document.getElementById('edDate')?.value||r.date;
   const result=await apiPut(curEId,{
