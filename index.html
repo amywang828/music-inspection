@@ -912,7 +912,11 @@ function saveLocal(){
 function loadLocal(){
   try{
     const q=localStorage.getItem(Q_KEY);
-    if(q){questions=JSON.parse(q);nQId=Math.max(...questions.map(x=>x.id))+1;}
+    if(q){
+      const DEF_Q=[{id:1},{id:2},{id:3},{id:4,hasReason:true}];
+      questions=JSON.parse(q).map(lq=>{const d=DEF_Q.find(d=>d.id===lq.id)||{};return{...d,...lq};});
+      nQId=Math.max(...questions.map(x=>x.id))+1;
+    }
     const s=localStorage.getItem(STORE_KEY);
     if(s){storeList=JSON.parse(s);}
     const p=localStorage.getItem(STAFF_KEY);
