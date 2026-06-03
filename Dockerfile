@@ -1,16 +1,8 @@
 FROM nginx:alpine
 RUN apk add --no-cache openssl
 
-# 複製前端靜態檔案
-COPY index.html /usr/share/nginx/html/index.html
-COPY sw.js /usr/share/nginx/html/sw.js
-COPY manifest.json /usr/share/nginx/html/manifest.json
-COPY icons/ /usr/share/nginx/html/icons/
-
 RUN printf 'server {\n\
     listen 8080;\n\
-    root /usr/share/nginx/html;\n\
-    index index.html;\n\
 \n\
     # FME 帳號驗證代理\n\
     location /auth {\n\
@@ -21,9 +13,15 @@ RUN printf 'server {\n\
         proxy_pass_request_headers on;\n\
     }\n\
 \n\
-    # 前端 SPA：所有路徑都回傳 index.html\n\
+    # 前端代理到 Cloudflare Pages（永遠保持最新版）\n\
     location / {\n\
-        try_files $uri $uri/ /index.html;\n\
+        proxy_pass https://music-inspection.pages.dev;\n\
+        proxy_ssl_server_name on;\n\
+        proxy_set_header Host music-inspection.pages.dev;\n\
+        proxy_set_header X-Real-IP $remote_addr;\n\
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
+        proxy_hide_header X-Frame-Options;\n\
+        proxy_redirect https://music-inspection.pages.dev/ /;\n\
     }\n\
 }\n' > /etc/nginx/conf.d/default.conf
 
