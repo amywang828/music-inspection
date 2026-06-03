@@ -44,9 +44,9 @@ jobs:
         id: gcp_token
         run: |
           CREDS='${{ secrets.GCP_CREDENTIALS }}'
-          CLIENT_ID=$(echo "$CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['client_id'])")
-          CLIENT_SECRET=$(echo "$CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['client_secret'])")
-          REFRESH_TOKEN=$(echo "$CREDS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['refresh_token'])")
+          CLIENT_ID=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['client_id'])")
+          CLIENT_SECRET=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['client_secret'])")
+          REFRESH_TOKEN=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['refresh_token'])")
           ACCESS_TOKEN=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
             -H "Content-Type: application/json" \
             -d "{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"grant_type\":\"refresh_token\"}" \
