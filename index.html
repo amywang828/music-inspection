@@ -1445,7 +1445,10 @@ async function confDel(){
   renderCL();
   showToast('「'+storeName+'」記錄已刪除');
 }
-function setEA(qid,val,el){eAns[qid]=val;const p=el.closest('div[style*="margin-bottom:14px"]');p.querySelectorAll('.ri').forEach(r=>{r.classList.remove('rv');r.classList.remove('rx');});el.classList.add(val==='V'?'rv':'rx');const rb=document.getElementById('eRebBox');if(rb){if(val==='X')rb.classList.add('show');else{rb.classList.remove('show');eRsn=null;rb.querySelectorAll('.rer').forEach(r=>r.classList.remove('sel'));}}}
+function setEA(qid,val,el){eAns[qid]=val;const p=el.closest('div[style*="margin-bottom:14px"]');p.querySelectorAll('.ri').forEach(r=>{r.classList.remove('rv');r.classList.remove('rx');});el.classList.add(val==='V'?'rv':'rx');
+  // 只有 hasReason 的題目（Q4）才控制燈號原因框
+  const q=questions.find(q=>q.id===qid);
+  if(q&&q.hasReason){const rb=document.getElementById('eRebBox');if(rb){if(val==='X')rb.classList.add('show');else{rb.classList.remove('show');eRsn=null;rb.querySelectorAll('.rer').forEach(r=>r.classList.remove('sel'));}}}}
 function setERsn(i,el){eRsn=i;document.querySelectorAll('#eRebBox .rer').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');}
 async function confEdit(){
   const ed=document.getElementById('edN')?.value.trim();if(!ed){alert('請輸入修改人姓名');return;}
