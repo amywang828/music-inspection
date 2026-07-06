@@ -93,9 +93,14 @@ jobs:
         id: scan
         run: |
           PROJECT="${{ env.PROJECT_ID }}"
-          IMAGE="asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect"
+          DIGEST="${{ steps.build.outputs.digest }}"
           TOKEN="${{ steps.gcp_token.outputs.access_token }}"
-          RESOURCE_URL="https://${IMAGE}"
+          if [ -n "$DIGEST" ]; then
+            RESOURCE_URL="https://${DIGEST}"
+          else
+            RESOURCE_URL="https://asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect"
+          fi
+          echo "Scanning resource: $RESOURCE_URL"
           MAX_WAIT=900
           INTERVAL=30
           ELAPSED=0
