@@ -1,5 +1,5 @@
-FROM nginx:alpine
-RUN apk add --no-cache openssl
+FROM nginx:stable-alpine
+RUN apk update && apk upgrade --no-cache && apk add --no-cache openssl
 
 RUN printf 'server {\n\
     listen 8080;\n\

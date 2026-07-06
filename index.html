@@ -741,6 +741,9 @@ const Q_KEY='mi_questions',STORE_KEY='mi_stores_v2',STAFF_KEY='mi_staff_v2';
 const API = 'https://music-inspection-api.a0955944828.workers.dev';
 const API_READY = !API.includes('你的帳號');
 
+// [SECURITY] XSS 防護：所有 innerHTML 插值須經此函式逸脫
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
 function calcFeeByRecord(r){
   // 只有備註含「1、2、4燈恆亮」才是 0 元，其餘全部 110 元
   if(!r)return 0;
@@ -1196,7 +1199,7 @@ function renBS(){
   if(!c){ct.innerHTML='<div class="et">請先選擇課別</div>';return;}
   const f=storeList.filter(s=>s.course===c);
   if(!f.length){ct.innerHTML='<div class="et">'+CN[c]+'　尚無店舖，請至維護管理匯入</div>';return;}
-  ct.innerHTML='<div class="dl">'+f.map(s=>{const gi=storeList.indexOf(s);const sl=selSt&&selSt.name===s.name&&selSt.course===s.course;return`<div class="dr ${sl?'sel':''}" onclick="selS(${gi},this)"><div class="ci-box">${sl?'✓':''}</div><span class="rn">${s.name}</span>${s.group?`<span class="rs">${s.group}</span>`:''}</div>`;}).join('')+'</div>';
+  ct.innerHTML='<div class="dl">'+f.map(s=>{const gi=storeList.indexOf(s);const sl=selSt&&selSt.name===s.name&&selSt.course===s.course;return`<div class="dr ${sl?'sel':''}" onclick="selS(${gi},this)"><div class="ci-box">${sl?'✓':''}</div><span class="rn">${esc(s.name)}</span>${s.group?`<span class="rs">${esc(s.group)}</span>`:''}</div>`;}).join('')+'</div>';
 }
 function selS(i,el){document.querySelectorAll('#stLC .dr').forEach(r=>{r.classList.remove('sel');r.querySelector('.ci-box').textContent='';});el.classList.add('sel');el.querySelector('.ci-box').textContent='✓';selSt=storeList[i];}
 function renBP(){
@@ -1204,7 +1207,7 @@ function renBP(){
   if(!c){ct.innerHTML='<div class="et">請先選擇課別</div>';return;}
   const f=ppList.filter(s=>s.course===c);
   if(!f.length){ct.innerHTML='<div class="et">'+CN[c]+'　尚無人員，請至維護管理匯入</div>';return;}
-  ct.innerHTML='<div class="dl">'+f.map(s=>{const gi=ppList.indexOf(s);const sl=selPp&&selPp.name===s.name&&selPp.course===s.course;return`<div class="dr ${sl?'sel':''}" onclick="selP(${gi},this)"><span class="rn">${s.name}</span><span class="badge bd-blue">${CN[s.course]}</span></div>`;}).join('')+'</div>';
+  ct.innerHTML='<div class="dl">'+f.map(s=>{const gi=ppList.indexOf(s);const sl=selPp&&selPp.name===s.name&&selPp.course===s.course;return`<div class="dr ${sl?'sel':''}" onclick="selP(${gi},this)"><span class="rn">${esc(s.name)}</span><span class="badge bd-blue">${CN[s.course]}</span></div>`;}).join('')+'</div>';
   selPp=null;
 }
 function selP(i,el){document.querySelectorAll('#ppLC .dr').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');selPp=ppList[i];const d=document.getElementById('ppSel');d.style.display='block';d.textContent=`已選擇：${selPp.name}（${CN[selPp.course]}）`;}
@@ -1379,9 +1382,9 @@ async function renderCL(){
 
 function viewR(id){
   const r=records.find(rc=>rc.id==id);if(!r)return;
-  const qr=questions.map(q=>{const a=r.answers[q.id];const ex=(q.hasReason&&a==='X'&&r.nmReason)?`<div style="font-size:var(--fs-sm);font-family:var(--font);color:var(--c-orange);margin-top:4px;padding:5px 10px;background:#FBE9E7;border-radius:6px;">燈號：${r.nmReason}</div>`:'';return`<div class="vr"><span style="color:var(--c-sub);flex:1;padding-right:10px;">${q.text}</span><span style="font-weight:700;color:${a==='V'?'var(--c-green)':'var(--c-red)'}">${a==='V'?'V（'+q.v+'）':'X（'+q.x+'）'}${ex}</span></div>`;}).join('');
-  const el=r.editLog&&r.editLog.length?`<div style="margin-top:12px;padding:10px 14px;background:var(--c-purple-lt);border:1.5px solid #B39DDB;border-radius:var(--r-xs);font-size:var(--fs-sm);font-family:var(--font);color:var(--c-purple);"><div style="font-weight:700;margin-bottom:5px;">修改記錄（共 ${r.editLog.length} 次）</div>${r.editLog.map(e=>`<div style="padding:3px 0;border-bottom:1px solid #D1C4E9;">修改人：${e.editor}　${e.time}</div>`).join('')}</div>`:'';
-  document.getElementById('mViewC').innerHTML=`<div class="mt">${r.store}</div><div class="ms">${r.date}　${r.staff}　${r.dept} ${CN[r.course]}</div>${qr}${el}<div class="ma"><button class="btn btn-ghost" onclick="closeM('mView')">關閉</button><button class="btn btn-primary" onclick="expOne('${r.id}')">↓ 匯出此筆</button></div>`;
+  const qr=questions.map(q=>{const a=r.answers[q.id];const ex=(q.hasReason&&a==='X'&&r.nmReason)?`<div style="font-size:var(--fs-sm);font-family:var(--font);color:var(--c-orange);margin-top:4px;padding:5px 10px;background:#FBE9E7;border-radius:6px;">燈號：${esc(r.nmReason)}</div>`:'';return`<div class="vr"><span style="color:var(--c-sub);flex:1;padding-right:10px;">${esc(q.text)}</span><span style="font-weight:700;color:${a==='V'?'var(--c-green)':'var(--c-red)'}">${a==='V'?'V（'+esc(q.v)+'）':'X（'+esc(q.x)+'）'}${ex}</span></div>`;}).join('');
+  const el=r.editLog&&r.editLog.length?`<div style="margin-top:12px;padding:10px 14px;background:var(--c-purple-lt);border:1.5px solid #B39DDB;border-radius:var(--r-xs);font-size:var(--fs-sm);font-family:var(--font);color:var(--c-purple);"><div style="font-weight:700;margin-bottom:5px;">修改記錄（共 ${r.editLog.length} 次）</div>${r.editLog.map(e=>`<div style="padding:3px 0;border-bottom:1px solid #D1C4E9;">修改人：${esc(e.editor)}　${esc(e.time)}</div>`).join('')}</div>`:'';
+  document.getElementById('mViewC').innerHTML=`<div class="mt">${esc(r.store)}</div><div class="ms">${esc(r.date)}　${esc(r.staff)}　${esc(r.dept)} ${CN[r.course]}</div>${qr}${el}<div class="ma"><button class="btn btn-ghost" onclick="closeM('mView')">關閉</button><button class="btn btn-primary" onclick="expOne('${esc(r.id)}')">↓ 匯出此筆</button></div>`;
   openM('mView');
 }
 
@@ -1393,10 +1396,10 @@ function openER(id){
   const rNmR=r.nmReason||r.nm_reason||'';
   eRsn=rNmR?NMR.indexOf(rNmR):null;
   const qH=questions.map(q=>{const aV=eAns[q.id]==='V',aX=eAns[q.id]==='X';
-    const rH=q.hasReason?`<div class="reb ${aX?'show':''}" id="eRebBox"><div class="ret">音樂機上盒燈號顯示狀況（必填）</div>${NMR.map((rv,i)=>`<div class="rer ${eRsn===i?'sel':''}" onclick="setERsn(${i},this)"><div class="re-c"><div class="re-d"></div></div><span class="re-t">${rv}</span></div>`).join('')}</div>`:'';
-    return`<div style="margin-bottom:14px;"><div class="qt">${q.text}<span class="req" style="margin-left:4px;">＊</span></div><div class="rg"><div class="ri ${aV?'rv':''}" onclick="setEA(${q.id},'V',this)"><div class="rc"><div class="rd"></div></div><span class="rl">V — ${q.v}</span></div><div class="ri ${aX?'rx':''}" onclick="setEA(${q.id},'X',this)"><div class="rc"><div class="rd"></div></div><span class="rl">X — ${q.x}</span></div></div>${rH}</div>`;
+    const rH=q.hasReason?`<div class="reb ${aX?'show':''}" id="eRebBox"><div class="ret">音樂機上盒燈號顯示狀況（必填）</div>${NMR.map((rv,i)=>`<div class="rer ${eRsn===i?'sel':''}" onclick="setERsn(${i},this)"><div class="re-c"><div class="re-d"></div></div><span class="re-t">${esc(rv)}</span></div>`).join('')}</div>`:'';
+    return`<div style="margin-bottom:14px;"><div class="qt">${esc(q.text)}<span class="req" style="margin-left:4px;">＊</span></div><div class="rg"><div class="ri ${aV?'rv':''}" onclick="setEA(${q.id},'V',this)"><div class="rc"><div class="rd"></div></div><span class="rl">V — ${esc(q.v)}</span></div><div class="ri ${aX?'rx':''}" onclick="setEA(${q.id},'X',this)"><div class="rc"><div class="rd"></div></div><span class="rl">X — ${esc(q.x)}</span></div></div>${rH}</div>`;
   }).join('');
-  document.getElementById('mEditC').innerHTML=`<div class="mt">修改點檢記錄</div><div class="ms">${r.store}　${CN[r.course]}</div><div class="al al-w" style="margin-bottom:14px;">修改將留存記錄，請填寫修改人姓名。</div><div class="fg"><label class="fl">點檢日期</label><input class="fc" id="edDate" type="date" value="${r.date}"></div>${qH}<div class="div"></div><div class="fg"><label class="fl">修改人姓名 <span class="req">*</span></label><input class="fc" id="edN" placeholder="請輸入修改人姓名"></div><div class="ma" style="flex-direction:column;gap:8px;"><div style="display:flex;gap:8px;"><button class="btn btn-ghost" style="flex:1;" onclick="closeM('mEdit')">取消</button><button class="btn btn-primary" style="flex:2;" onclick="confEdit()">儲存修改</button></div><button class="btn btn-red btn-sm" style="width:100%;" onclick="delRecord('${r.id}','${r.store}')">🗑 刪除此筆記錄</button></div>`;
+  document.getElementById('mEditC').innerHTML=`<div class="mt">修改點檢記錄</div><div class="ms">${esc(r.store)}　${CN[r.course]}</div><div class="al al-w" style="margin-bottom:14px;">修改將留存記錄，請填寫修改人姓名。</div><div class="fg"><label class="fl">點檢日期</label><input class="fc" id="edDate" type="date" value="${esc(r.date)}"></div>${qH}<div class="div"></div><div class="fg"><label class="fl">修改人姓名 <span class="req">*</span></label><input class="fc" id="edN" placeholder="請輸入修改人姓名"></div><div class="ma" style="flex-direction:column;gap:8px;"><div style="display:flex;gap:8px;"><button class="btn btn-ghost" style="flex:1;" onclick="closeM('mEdit')">取消</button><button class="btn btn-primary" style="flex:2;" onclick="confEdit()">儲存修改</button></div><button class="btn btn-red btn-sm" style="width:100%;" onclick="delRecord('${esc(r.id)}','${esc(r.store)}')">🗑 刪除此筆記錄</button></div>`;
   openM('mEdit');
 }
 function delRecord(id,storeName){
@@ -1740,7 +1743,7 @@ function rmSt(){
   const f=storeList.filter(s=>(!c||s.course===c)&&(!kw||s.name.toLowerCase().includes(kw)));
   const ct=document.getElementById('mStL');if(!ct)return;
   if(!f.length){ct.innerHTML='<div class="et">尚無店舖資料</div>';document.getElementById('sSm').textContent='';return;}
-  ct.innerHTML='<div class="dl">'+f.map(s=>{const gi=storeList.indexOf(s);return`<div class="dr" style="justify-content:space-between;"><span class="badge bd-blue">${CN[s.course]}</span><span class="rn" style="margin-left:6px;">${s.name}</span>${s.lastDate?`<span class="rs" style="margin-right:6px;">${s.lastDate}</span>`:''}<button class="btn btn-red btn-xs" onclick="delSt(${gi})">刪除</button></div>`;}).join('')+'</div>';
+  ct.innerHTML='<div class="dl">'+f.map(s=>{const gi=storeList.indexOf(s);return`<div class="dr" style="justify-content:space-between;"><span class="badge bd-blue">${CN[s.course]}</span><span class="rn" style="margin-left:6px;">${esc(s.name)}</span>${s.lastDate?`<span class="rs" style="margin-right:6px;">${esc(s.lastDate)}</span>`:''}<button class="btn btn-red btn-xs" onclick="delSt(${gi})">刪除</button></div>`;}).join('')+'</div>';
   document.getElementById('sSm').textContent=`共 ${f.length} 筆（全部 ${storeList.length} 筆）`;
 }
 async function delSt(i){
@@ -1755,7 +1758,7 @@ function rmPp(){
   const c=gv('pfC')||'';const f=c?ppList.filter(s=>s.course===c):ppList;
   const ct=document.getElementById('mPpL');if(!ct)return;
   if(!f.length){ct.innerHTML='<div class="et">尚無人員資料</div>';document.getElementById('pSm').textContent='';return;}
-  ct.innerHTML='<div class="dl">'+f.map(s=>{const gi=ppList.indexOf(s);return`<div class="dr" style="justify-content:space-between;"><span class="badge bd-blue">${CN[s.course]}</span><span class="rn" style="margin-left:6px;">${s.name}</span><button class="btn btn-red btn-xs" onclick="delPp(${gi})">刪除</button></div>`;}).join('')+'</div>';
+  ct.innerHTML='<div class="dl">'+f.map(s=>{const gi=ppList.indexOf(s);return`<div class="dr" style="justify-content:space-between;"><span class="badge bd-blue">${CN[s.course]}</span><span class="rn" style="margin-left:6px;">${esc(s.name)}</span><button class="btn btn-red btn-xs" onclick="delPp(${gi})">刪除</button></div>`;}).join('')+'</div>';
   document.getElementById('pSm').textContent=`共 ${f.length} 筆（全部 ${ppList.length} 筆）`;
 }
 async function delPp(i){
@@ -1766,7 +1769,7 @@ async function delPp(i){
   showLoading(false);
   ppList.splice(i,1);rmPp();renBP();
 }
-function renderMQ(){const ct=document.getElementById('mqL');if(!ct)return;ct.innerHTML=questions.map(q=>`<div class="mqi"><div class="mqt">${q.text}<div class="mqsub">V：${q.v}　X：${q.x}${q.hasReason?' ｜ 含燈號備註':''}</div></div><div class="mqa"><button class="btn btn-ghost btn-xs" onclick="editQ(${q.id})">編輯</button><button class="btn btn-red btn-xs" onclick="delQ(${q.id})">刪除</button></div></div>`).join('');}
+function renderMQ(){const ct=document.getElementById('mqL');if(!ct)return;ct.innerHTML=questions.map(q=>`<div class="mqi"><div class="mqt">${esc(q.text)}<div class="mqsub">V：${esc(q.v)}　X：${esc(q.x)}${q.hasReason?' ｜ 含燈號備註':''}</div></div><div class="mqa"><button class="btn btn-ghost btn-xs" onclick="editQ(${q.id})">編輯</button><button class="btn btn-red btn-xs" onclick="delQ(${q.id})">刪除</button></div></div>`).join('');}
 function openAQ(){eQId=null;['nQT','nQV','nQX'].forEach(id=>document.getElementById(id).value='');document.getElementById('mQT').textContent='新增點檢題目';document.getElementById('cQB').textContent='確認新增';document.getElementById('cQB').onclick=confQ;openM('mAddQ');}
 function confQ(){const t=document.getElementById('nQT').value.trim(),v=document.getElementById('nQV').value.trim()||'有',x=document.getElementById('nQX').value.trim()||'無';if(!t)return;if(eQId!==null){const q=questions.find(q=>q.id===eQId);if(q){q.text=t;q.v=v;q.x=x;}eQId=null;}else questions.push({id:nQId++,text:t,v,x,required:true});saveLocal();renderMQ();closeM('mAddQ');}
 function editQ(id){const q=questions.find(q=>q.id===id);if(!q)return;eQId=id;document.getElementById('nQT').value=q.text;document.getElementById('nQV').value=q.v;document.getElementById('nQX').value=q.x;document.getElementById('mQT').textContent='編輯點檢題目';document.getElementById('cQB').textContent='儲存修改';document.getElementById('cQB').onclick=confQ;openM('mAddQ');}

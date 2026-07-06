@@ -2,5 +2,15 @@ node_modules/
 package.json
 package-lock.json
 *.docx
+!security-report-*.docx
 .github-deploy.json
 backup/
+.env
+.env.local
+.DS_Store
+__pycache__/
+*.pyc
+dist/
+build/
+.venv/
+*.log
