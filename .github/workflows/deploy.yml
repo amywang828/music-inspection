@@ -17,7 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Checkout
@@ -38,87 +37,72 @@ jobs:
           fi
           echo "Security report confirmed: $REPORT"
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: "projects/403438157899/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
-          service_account: "github-actions-sa@c000-493901.iam.gserviceaccount.com"
-
-      - name: Check if service exists
-        id: check
+      - name: Authenticate to Google Cloud (OAuth2)
+        id: gcp_token
         run: |
-          EXISTS=$(gcloud run services describe ${{ steps.svc.outputs.name }} \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROJECT_ID }} \
-            --format="value(name)" 2>/dev/null || echo "")
-          if [ -n "$EXISTS" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
+          CREDS='${{ secrets.GCP_CREDENTIALS }}'
+          CLIENT_ID=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['client_id'])")
+          CLIENT_SECRET=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['client_secret'])")
+          REFRESH_TOKEN=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['refresh_token'])")
+          ACCESS_TOKEN=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
+            -H "Content-Type: application/json" \
+            -d "{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"grant_type\":\"refresh_token\"}" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+          echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
 
-      - name: Deploy existing service (no_traffic)
-        id: deploy
-        if: steps.check.outputs.exists == 'true'
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          service: ${{ steps.svc.outputs.name }}
-          region: ${{ env.REGION }}
-          project_id: ${{ env.PROJECT_ID }}
-          source: .
-          no_traffic: true
-          flags: --no-invoker-iam-check
-
-      - name: Deploy new service
-        id: deploy_new
-        if: steps.check.outputs.exists == 'false'
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          service: ${{ steps.svc.outputs.name }}
-          region: ${{ env.REGION }}
-          project_id: ${{ env.PROJECT_ID }}
-          source: .
-          no_traffic: true
-          flags: --no-invoker-iam-check
-
-      - name: Get deployed image digest
-        id: image
+      - name: Docker login to Artifact Registry
         run: |
-          REVISION=$(gcloud run services describe ${{ steps.svc.outputs.name }} \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROJECT_ID }} \
-            --format="value(status.latestCreatedRevisionName)")
-          IMAGE_REF=$(gcloud run revisions describe $REVISION \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROJECT_ID }} \
-            --format="value(spec.containers[0].image)")
-          IMAGE_BASE=$(echo "$IMAGE_REF" | sed 's/@sha256:.*//' | sed 's/:.*//')
-          DIGEST=$(gcloud artifacts docker images describe "$IMAGE_REF" \
-            --format="value(image_summary.digest)" 2>/dev/null || echo "")
-          if [ -z "$DIGEST" ]; then
-            RESOURCE_URL="https://$IMAGE_REF"
-          else
-            RESOURCE_URL="https://${IMAGE_BASE}@${DIGEST}"
-          fi
+          echo "${{ steps.gcp_token.outputs.access_token }}" | \
+            docker login -u oauth2accesstoken --password-stdin https://asia-east1-docker.pkg.dev
+
+      - name: Build and push Docker image
+        id: build
+        run: |
+          IMAGE="asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect"
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE 2>/dev/null || echo "")
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+      - name: Deploy to Cloud Run (no_traffic)
+        run: |
+          TOKEN="${{ steps.gcp_token.outputs.access_token }}"
+          IMAGE="asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect"
+          curl -s -X PATCH \
+            "https://run.googleapis.com/v2/projects/c000-493901/locations/asia-east1/services/music-inspect" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"template\":{\"containers\":[{\"image\":\"$IMAGE\"}]},\"annotations\":{\"run.googleapis.com/invoker-iam-disabled\":\"true\",\"run.googleapis.com/ingress\":\"all\"}}" | \
+            python3 -c "import sys,json; r=json.load(sys.stdin); print('Deployed:', r.get('name',''), r.get('error',''))"
+
+      - name: Get deployed revision
+        id: revision
+        run: |
+          TOKEN="${{ steps.gcp_token.outputs.access_token }}"
+          sleep 10
+          REVISION=$(curl -s \
+            "https://run.googleapis.com/v2/projects/c000-493901/locations/asia-east1/services/music-inspect" \
+            -H "Authorization: Bearer $TOKEN" | \
+            python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('latestCreatedRevision','').split('/')[-1])")
           echo "revision=$REVISION" >> $GITHUB_OUTPUT
-          echo "resource_url=$RESOURCE_URL" >> $GITHUB_OUTPUT
-          echo "Deployed revision: $REVISION"
-          echo "Resource URL: $RESOURCE_URL"
+          echo "Latest revision: $REVISION"
 
       - name: Wait for container scan results
         id: scan
         run: |
           PROJECT="${{ env.PROJECT_ID }}"
-          RESOURCE_URL="${{ steps.image.outputs.resource_url }}"
+          IMAGE="asia-east1-docker.pkg.dev/c000-493901/cloud-run-source-deploy/music-inspect"
+          TOKEN="${{ steps.gcp_token.outputs.access_token }}"
+          RESOURCE_URL="https://${IMAGE}"
           MAX_WAIT=900
           INTERVAL=30
           ELAPSED=0
           echo "Waiting for container scan results..."
-          echo "Target: $RESOURCE_URL"
           while [ $ELAPSED -lt $MAX_WAIT ]; do
             sleep $INTERVAL
             ELAPSED=$((ELAPSED + INTERVAL))
-            TOKEN=$(gcloud auth print-access-token)
             DISCOVERY=$(curl -sf \
               -H "Authorization: Bearer $TOKEN" \
               --get \
@@ -138,8 +122,7 @@ jobs:
               COUNT=$(echo "$VULN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('occurrences',[])))" 2>/dev/null || echo "0")
               HIGH=$(echo "$VULN" | python3 -c "import sys,json;d=json.load(sys.stdin);print(sum(1 for o in d.get('occurrences',[]) if o.get('vulnerability',{}).get('severity','') in ['CRITICAL','HIGH','MEDIUM'] or (o.get('vulnerability',{}).get('severity','') in ['LOW','MINIMAL','','SEVERITY_UNSPECIFIED'] and any(p.get('fixedVersion',{}).get('name','') not in ['','none'] for p in o.get('vulnerability',{}).get('packageIssue',[])))))" 2>/dev/null || echo "0")
               WARN=$(echo "$VULN" | python3 -c "import sys,json;d=json.load(sys.stdin);print(sum(1 for o in d.get('occurrences',[]) if o.get('vulnerability',{}).get('severity','') in ['LOW','MINIMAL','','SEVERITY_UNSPECIFIED'] and not any(p.get('fixedVersion',{}).get('name','') not in ['','none'] for p in o.get('vulnerability',{}).get('packageIssue',[]))))" 2>/dev/null || echo "0")
-              echo "Found $COUNT vulnerabilities: $HIGH blocking (critical/high/medium or fixable low), $WARN warning-only (unfixable low)."
-              echo "$VULN" | python3 -c "import sys,json;d=json.load(sys.stdin);[print(f'  [{o.get(\"vulnerability\",{}).get(\"severity\",\"\")}] {o.get(\"vulnerability\",{}).get(\"shortDescription\",\"\")} {p.get(\"affectedPackage\",\"\")} {p.get(\"affectedVersion\",{}).get(\"name\",\"\")} -> fix: {p.get(\"fixedVersion\",{}).get(\"name\",\"none\")}') for o in d.get('occurrences',[]) for p in o.get('vulnerability',{}).get('packageIssue',[])]" 2>/dev/null || true
+              echo "Found $COUNT vulnerabilities: $HIGH blocking, $WARN warning-only."
               echo "count=$COUNT" >> $GITHUB_OUTPUT
               echo "high=$HIGH" >> $GITHUB_OUTPUT
               echo "warn=$WARN" >> $GITHUB_OUTPUT
@@ -150,23 +133,22 @@ jobs:
             echo "SCAN_TIMEOUT=true" >> $GITHUB_ENV
             echo "count=-1" >> $GITHUB_OUTPUT
             echo "high=1" >> $GITHUB_OUTPUT
-            echo "Scan timeout after 900s. Treating as failure. Traffic will remain at 0%."
           fi
 
       - name: Open traffic if scan passed
         if: steps.scan.outputs.high == '0'
         run: |
-          SERVICE="${{ steps.svc.outputs.name }}"
-          REGION="${{ env.REGION }}"
-          PROJECT="${{ env.PROJECT_ID }}"
-          CURRENT="${{ steps.image.outputs.revision }}"
-          echo "Scan passed. Setting traffic to 100%..."
-          gcloud run services update-traffic $SERVICE \
-            --region=$REGION --project=$PROJECT \
-            --to-revisions=$CURRENT=100
+          TOKEN="${{ steps.gcp_token.outputs.access_token }}"
+          REVISION="${{ steps.revision.outputs.revision }}"
+          curl -s -X PATCH \
+            "https://run.googleapis.com/v2/projects/c000-493901/locations/asia-east1/services/music-inspect" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"traffic\":[{\"revision\":\"$REVISION\",\"percent\":100}]}" | \
+            python3 -c "import sys,json; r=json.load(sys.stdin); print('Traffic updated:', r.get('name',''), r.get('error',''))"
           echo "========================================="
-          echo "Deployed! Service: $SERVICE"
-          echo "URL: ${{ steps.deploy.outputs.url }}${{ steps.deploy_new.outputs.url }}"
+          echo "Deployed! Service: music-inspect"
+          echo "URL: https://music-inspect-403438157899.asia-east1.run.app"
           echo "========================================="
 
       - name: Warn for unfixable low severity
@@ -178,10 +160,8 @@ jobs:
         if: steps.scan.outputs.high != '0'
         run: |
           if [ "${{ env.SCAN_TIMEOUT }}" = "true" ]; then
-            echo "SCAN_ACTION=timeout" >> $GITHUB_ENV
             echo "掃描逾時（15分鐘），掃描異常失敗，請AI協助確認問題。Traffic remains at 0%."
           else
-            echo "SCAN_ACTION=blocked" >> $GITHUB_ENV
-            echo "Blocking vulnerabilities found (critical/high/medium or fixable low). Traffic remains at 0%."
+            echo "Blocking vulnerabilities found. Traffic remains at 0%."
           fi
           exit 1
