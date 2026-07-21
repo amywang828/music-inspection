@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音樂置換點檢APP 操作手冊 v1.0</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;background:#f5f7fb;color:#1a1a2e;line-height:1.7;font-size:15px;}
+a{color:#2563eb;text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* Layout */
+.layout{display:flex;min-height:100vh;}
+.sidebar{width:260px;background:#1e3a5f;color:#e8eef8;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;flex-shrink:0;z-index:100;}
+.main{margin-left:260px;flex:1;max-width:900px;}
+@media(max-width:768px){
+  .sidebar{width:100%;height:auto;position:relative;}
+  .main{margin-left:0;}
+  .layout{flex-direction:column;}
+}
+
+/* Sidebar */
+.sidebar-header{padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,.12);}
+.sidebar-logo{font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:4px;}
+.sidebar-title{font-size:15px;font-weight:700;color:#fff;line-height:1.4;}
+.sidebar-nav{padding:10px 0 20px;}
+.nav-section{padding:10px 18px 4px;font-size:11px;font-weight:700;color:#64a0d4;text-transform:uppercase;letter-spacing:.08em;}
+.nav-link{display:block;padding:7px 18px 7px 24px;font-size:13px;color:#c8d9ef;transition:all .15s;border-left:3px solid transparent;}
+.nav-link:hover{background:rgba(255,255,255,.08);color:#fff;text-decoration:none;}
+.nav-link.active{background:rgba(37,99,235,.25);color:#93c5fd;border-left-color:#60a5fa;font-weight:700;}
+
+/* Header */
+.page-header{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);color:#fff;padding:32px 40px 24px;}
+.company{font-size:12px;font-weight:700;letter-spacing:.1em;opacity:.8;margin-bottom:8px;}
+.sys-title{font-size:28px;font-weight:700;margin-bottom:6px;}
+.sys-subtitle{font-size:14px;opacity:.85;}
+.meta-row{display:flex;gap:20px;margin-top:14px;flex-wrap:wrap;}
+.meta-tag{background:rgba(255,255,255,.18);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;}
+
+/* Content */
+.content{padding:32px 40px;}
+@media(max-width:600px){.content{padding:20px 16px;}}
+
+h1{font-size:22px;font-weight:700;color:#1e3a5f;border-bottom:2px solid #2563eb;padding-bottom:10px;margin:36px 0 18px;}
+h1:first-child{margin-top:0;}
+h2{font-size:17px;font-weight:700;color:#1e40af;margin:24px 0 12px;}
+h3{font-size:15px;font-weight:700;color:#1e3a5f;margin:18px 0 8px;}
+p{margin-bottom:12px;}
+ul,ol{margin:8px 0 12px 22px;}
+li{margin-bottom:5px;}
+
+/* Table */
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;}
+th{background:#2563eb;color:#fff;padding:10px 12px;text-align:left;font-weight:700;}
+td{padding:9px 12px;border-bottom:1px solid #e2e8f0;}
+tr:nth-child(even) td{background:#f0f4ff;}
+tr:hover td{background:#dbeafe;}
+
+/* Callout */
+.callout{border-radius:8px;padding:14px 16px;margin:14px 0;font-size:14px;}
+.callout-info{background:#dbeafe;border-left:4px solid #2563eb;}
+.callout-warn{background:#fff7ed;border-left:4px solid #ea580c;}
+.callout-tip{background:#f0fdf4;border-left:4px solid #16a34a;}
+.callout strong{display:block;margin-bottom:4px;font-size:13px;letter-spacing:.05em;}
+.callout-info strong{color:#1d4ed8;}
+.callout-warn strong{color:#c2410c;}
+.callout-tip strong{color:#15803d;}
+
+/* Steps */
+.steps{counter-reset:step;list-style:none;margin:10px 0;padding:0;}
+.steps li{counter-increment:step;display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;}
+.steps li::before{content:counter(step);background:#2563eb;color:#fff;font-weight:700;font-size:12px;min-width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700;}
+.badge-green{background:#dcfce7;color:#15803d;}
+.badge-blue{background:#dbeafe;color:#1d4ed8;}
+.badge-orange{background:#fff7ed;color:#c2410c;}
+.badge-gray{background:#f1f5f9;color:#475569;}
+
+/* Role table icon */
+.check{color:#16a34a;font-weight:700;}
+.cross{color:#dc2626;font-weight:700;}
+
+/* Screenshot placeholder */
+.screen-box{background:#f8faff;border:1px solid #c7d2fe;border-radius:10px;padding:20px;margin:12px 0;text-align:center;color:#6b7280;font-size:13px;}
+
+/* Footer */
+.page-footer{background:#1e3a5f;color:#93c5fd;padding:20px 40px;font-size:12px;margin-top:40px;text-align:center;}
+
+/* Print */
+@media print{
+  .sidebar{display:none;}
+  .main{margin-left:0;}
+  .page-header{background:#1e3a5f !important;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+}
+
+/* Scroll spy */
+section{scroll-margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">日翊文化行銷股份有限公司</div>
+    <div class="sidebar-title">音樂置換點檢APP<br>操作手冊 v1.0</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">目錄</div>
+    <a class="nav-link" href="#s1">1. 系統基本資訊</a>
+    <a class="nav-link" href="#s2">2. 系統規格</a>
+    <a class="nav-link" href="#s3">3. 帳號與登入</a>
+    <a class="nav-link" href="#s4">4. 功能操作說明</a>
+    <a class="nav-link" href="#s4-1" style="padding-left:36px;">4.1 基本資料</a>
+    <a class="nav-link" href="#s4-2" style="padding-left:36px;">4.2 點檢問答</a>
+    <a class="nav-link" href="#s4-3" style="padding-left:36px;">4.3 查詢記錄</a>
+    <a class="nav-link" href="#s4-4" style="padding-left:36px;">4.4 點檢結果</a>
+    <a class="nav-link" href="#s4-5" style="padding-left:36px;">4.5 維護管理</a>
+    <a class="nav-link" href="#s4-6" style="padding-left:36px;">4.6 點檢 SOP</a>
+    <a class="nav-link" href="#s4-7" style="padding-left:36px;">4.7 PWA 安裝</a>
+    <a class="nav-link" href="#s5">5. 角色與權限</a>
+    <a class="nav-link" href="#s6">6. 常見問題 FAQ</a>
+    <a class="nav-link" href="#s7">7. 版本紀錄</a>
+    <a class="nav-link" href="#s8">8. 資料保護說明</a>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="main">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="company">日翊文化行銷股份有限公司　|　盤點本部</div>
+    <div class="sys-title">🎵 音樂置換點檢 APP 操作手冊</div>
+    <div class="sys-subtitle">Music Inspection System — User Manual</div>
+    <div class="meta-row">
+      <span class="meta-tag">版本 v1.0</span>
+      <span class="meta-tag">建立 2026/07/07</span>
+      <span class="meta-tag">系統代號 MUSIC-INSP</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- 1. 系統基本資訊 -->
+    <section id="s1">
+      <h1>1. 系統基本資訊</h1>
+      <table>
+        <tr><th width="180">項目</th><th>內容</th></tr>
+        <tr><td>系統名稱</td><td>音樂置換點檢 APP</td></tr>
+        <tr><td>系統代號</td><td>MUSIC-INSP</td></tr>
+        <tr><td>系統用途</td><td>管理各門市音樂置換工作的點檢紀錄、統計報表及請款作業</td></tr>
+        <tr><td>適用對象</td><td>盤點一部（北一～北四課、桃竹課）、盤點二部（台中、嘉南、高屏課）點檢人員及主管</td></tr>
+        <tr><td>網路存取方式</td><td>走網際網路（可從外部網路連線存取，無需 VPN）</td></tr>
+        <tr><td>上線日期</td><td>2026/05</td></tr>
+        <tr><td>系統網址（正式）</td><td><a href="https://music-inspection.pages.dev" target="_blank">https://music-inspection.pages.dev</a></td></tr>
+        <tr><td>系統網址（備用）</td><td><a href="https://music-inspect-403438157899.asia-east1.run.app" target="_blank">https://music-inspect-403438157899.asia-east1.run.app</a></td></tr>
+        <tr><td>開發工具</td><td>Claude Code（AI 輔助開發）</td></tr>
+        <tr><td>維護單位</td><td>盤點本部資訊負責人</td></tr>
+        <tr><td>問題回報窗口</td><td>待補充（姓名／分機／Email）</td></tr>
+      </table>
+
+      <h2>系統簡介</h2>
+      <p>本系統供日翊文化行銷盤點一部、二部各課別點檢人員，記錄門市音樂置換的點檢狀況。系統整合 FME 企業帳號登入，支援離線 PWA 安裝，並自動同步資料至 Google Sheets 備份。月底可直接產出請款明細報表，計算各課別應收費用。</p>
+    </section>
+
+    <!-- 2. 系統規格 -->
+    <section id="s2">
+      <h1>2. 系統規格</h1>
+
+      <h2>2.1 技術架構</h2>
+      <table>
+        <tr><th>層級</th><th>技術</th><th>說明</th></tr>
+        <tr><td>前端</td><td>HTML / CSS / JavaScript（單一檔案）</td><td>PWA，支援離線使用</td></tr>
+        <tr><td>後端</td><td>Cloudflare Workers</td><td>無伺服器 API</td></tr>
+        <tr><td>資料庫</td><td>Cloudflare D1（SQLite）</td><td>點檢記錄、店舖、人員</td></tr>
+        <tr><td>備份</td><td>Google Apps Script + Google Sheets</td><td>即時同步</td></tr>
+        <tr><td>部署平台</td><td>Cloudflare Pages（前端）、GCP Cloud Run（驗證代理）</td><td></td></tr>
+        <tr><td>身份驗證</td><td>FME 企業帳號（eip.fme.com.tw）</td><td>公司帳號/密碼</td></tr>
+      </table>
+
+      <h2>2.2 主要功能模組</h2>
+      <table>
+        <tr><th>模組</th><th>功能描述</th><th>狀態</th></tr>
+        <tr><td>基本資料</td><td>填寫點檢基本資訊（部別、課別、人員、店舖、日期）</td><td><span class="badge badge-green">✅ 上線</span></td></tr>
+        <tr><td>點檢問答</td><td>逐題回答點檢問題，記錄通過/未通過及原因</td><td><span class="badge badge-green">✅ 上線</span></td></tr>
+        <tr><td>查詢記錄</td><td>查詢歷史點檢紀錄，支援修改與刪除</td><td><span class="badge badge-green">✅ 上線</span></td></tr>
+        <tr><td>點檢結果</td><td>統計報表、音樂置換請款明細（含稅計算）</td><td><span class="badge badge-green">✅ 上線</span></td></tr>
+        <tr><td>維護管理</td><td>管理應查核店舖、人員名單、點檢題目</td><td><span class="badge badge-green">✅ 上線</span></td></tr>
+        <tr><td>點檢 SOP</td><td>點檢標準作業程序說明</td><td><span class="badge badge-green">✅ 上線</span></td></tr>
+        <tr><td>PWA 安裝</td><td>加入手機主畫面，支援離線讀取</td><td><span class="badge badge-green">✅ 上線</span></td></tr>
+      </table>
+
+      <h2>2.3 資料備份</h2>
+      <p>每次新增、修改、刪除記錄時，系統會即時（非同步）同步至 Google Sheets：</p>
+      <p>Google Sheets：<a href="https://docs.google.com/spreadsheets/d/1wH0edfIlU4B4VzaDTFkzbHBfIMDTGOW81i1JCAUCQ98" target="_blank">點此開啟試算表</a></p>
+    </section>
+
+    <!-- 3. 帳號與登入 -->
+    <section id="s3">
+      <h1>3. 帳號與登入</h1>
+
+      <h2>3.1 帳號申請</h2>
+      <p>本系統使用 <strong>FME 企業帳號</strong>（eip.fme.com.tw 的員工帳號）登入，無需另行申請。確認您可以登入公司 EIP 系統即可使用本 APP。</p>
+      <div class="callout callout-info"><strong>ℹ️ 說明</strong>如遇帳號問題，請聯絡公司人資或 IT 部門重設 EIP 帳號密碼。</div>
+
+      <h2>3.2 登入步驟</h2>
+      <ol class="steps">
+        <li>開啟瀏覽器，前往系統網址：<code>https://music-inspection.pages.dev</code></li>
+        <li>輸入 <strong>FME 員工帳號</strong>（格式：英文字母+數字，如 <code>abc12345</code>）</li>
+        <li>輸入 <strong>員工密碼</strong>（同 EIP 登入密碼）</li>
+        <li>點擊「登入」按鈕</li>
+        <li>登入成功後自動進入系統主畫面</li>
+      </ol>
+      <div class="callout callout-warn"><strong>⚠️ 注意</strong>建議使用 Chrome 或 Edge 瀏覽器。關閉瀏覽器後需重新登入（登入狀態不跨瀏覽器 session 保留）。</div>
+
+      <h2>3.3 忘記密碼</h2>
+      <p>本系統密碼即 FME 企業帳號密碼。如忘記密碼，請聯絡公司 IT 或人資部門重設 EIP 密碼。</p>
+
+      <h2>3.4 登出</h2>
+      <p>點擊右上角「登出」按鈕即可登出系統。</p>
+    </section>
+
+    <!-- 4. 功能操作說明 -->
+    <section id="s4">
+      <h1>4. 功能操作說明</h1>
+      <p>系統主畫面頂部有六個功能頁籤，點擊可切換不同功能。</p>
+      <table>
+        <tr><th>頁籤</th><th>功能</th></tr>
+        <tr><td>基本資料</td><td>填寫點檢資訊，開始點檢流程</td></tr>
+        <tr><td>點檢問答</td><td>逐題回答點檢問題並提交</td></tr>
+        <tr><td>查詢記錄</td><td>查看歷史點檢記錄</td></tr>
+        <tr><td>點檢結果</td><td>統計報表與請款明細</td></tr>
+        <tr><td>維護管理</td><td>管理店舖、人員、題目資料</td></tr>
+        <tr><td style="color:#D84315;font-weight:700;">點檢SOP</td><td>點檢標準作業程序（橘紅色頁籤）</td></tr>
+      </table>
+    </section>
+
+    <section id="s4-1">
+      <h2>4.1 基本資料</h2>
+      <p><strong>用途：</strong>開始一筆新的點檢記錄，選擇部別、課別、人員、店舖與點檢日期。</p>
+
+      <h3>操作步驟</h3>
+      <ol class="steps">
+        <li>選擇「<strong>部別</strong>」（盤點一部 / 盤點二部），課別選項會自動連動更新</li>
+        <li>選擇「<strong>課別</strong>」</li>
+        <li>選擇「<strong>點檢人員</strong>」（由維護管理預先設定）</li>
+        <li>選擇「<strong>店舖</strong>」（由維護管理預先設定）</li>
+        <li>選擇「<strong>點檢日期</strong>」（預設為今天）</li>
+        <li>點擊「<strong>前往點檢問答 →</strong>」開始點檢</li>
+      </ol>
+
+      <h3>欄位說明</h3>
+      <table>
+        <tr><th>欄位</th><th>說明</th><th>必填</th></tr>
+        <tr><td>部別</td><td>盤點一部（北部/桃竹）或盤點二部（中南部）</td><td>✓</td></tr>
+        <tr><td>課別</td><td>依部別連動顯示對應課別</td><td>✓</td></tr>
+        <tr><td>點檢人員</td><td>執行點檢的人員姓名</td><td>✓</td></tr>
+        <tr><td>店舖</td><td>本次點檢的門市名稱</td><td>✓</td></tr>
+        <tr><td>點檢日期</td><td>實際點檢日期（YYYY-MM-DD）</td><td>✓</td></tr>
+      </table>
+
+      <div class="callout callout-warn"><strong>⚠️ 同月同店防重複</strong>同一課別、同一店舖、同一月份只允許一筆記錄。若已存在記錄，系統會提示衝突，請改用「查詢記錄」功能修改原始記錄。</div>
+    </section>
+
+    <section id="s4-2">
+      <h2>4.2 點檢問答</h2>
+      <p><strong>用途：</strong>逐題回答點檢問題，記錄每題通過或未通過的狀況。</p>
+
+      <h3>操作步驟</h3>
+      <ol class="steps">
+        <li>系統自動載入點檢題目清單（由維護管理設定）</li>
+        <li>每題選擇「<strong>通過</strong>」或「<strong>未通過</strong>」</li>
+        <li>如有題目未通過，可在備註欄填寫原因說明</li>
+        <li>確認所有題目填寫完成後，點擊「<strong>✔ 提交此筆點檢記錄</strong>」</li>
+        <li>系統顯示提交成功，記錄即時儲存並同步至 Google Sheets</li>
+      </ol>
+
+      <div class="callout callout-tip"><strong>💡 提示</strong>如需修改已提交的記錄，請至「查詢記錄」頁籤找到該筆記錄進行修改。</div>
+    </section>
+
+    <section id="s4-3">
+      <h2>4.3 查詢記錄</h2>
+      <p><strong>用途：</strong>查詢已提交的點檢記錄，支援修改與刪除。</p>
+
+      <h3>操作步驟</h3>
+      <ol class="steps">
+        <li>選擇「課別」及日期範圍（起訖日期）</li>
+        <li>點擊「查詢」載入符合條件的記錄清單</li>
+        <li>點擊特定記錄可查看詳情</li>
+        <li>如需修改：點擊「編輯」按鈕 → 修改內容 → 儲存（系統自動記錄修改人與時間）</li>
+        <li>如需刪除：點擊「刪除」→ 輸入密碼 9588 確認 → 記錄永久刪除</li>
+      </ol>
+
+      <div class="callout callout-warn"><strong>⚠️ 刪除需密碼</strong>刪除記錄需輸入密碼 <code>9588</code>，刪除後無法復原，請謹慎操作。</div>
+
+      <h3>頁面統計</h3>
+      <p>查詢結果頁面上方顯示：總點檢筆數、本月筆數、全部通過數量等統計資訊。</p>
+    </section>
+
+    <section id="s4-4">
+      <h2>4.4 點檢結果（報表與請款）</h2>
+      <p><strong>用途：</strong>查看統計報表，並產出音樂置換請款明細（含費用計算）。</p>
+
+      <h3>① 點檢清單統計</h3>
+      <ol class="steps">
+        <li>選擇「課別」與日期範圍</li>
+        <li>點擊「查詢」，系統顯示每店最新一筆點檢記錄的彙整清單</li>
+        <li>統計欄位包含：店數、通過店數、未通過店數、通過率</li>
+      </ol>
+
+      <h3>② 音樂置換請款明細</h3>
+      <ol class="steps">
+        <li>選擇月份與查詢範圍</li>
+        <li>點擊查詢，系統依計費規則自動計算</li>
+        <li>可選擇「匯出 Excel」下載請款明細表</li>
+      </ol>
+
+      <h3>計費規則</h3>
+      <table>
+        <tr><th>計費項目</th><th>金額</th></tr>
+        <tr><td>每店點檢費（一般）</td><td>NT$ 110 / 店</td></tr>
+        <tr><td>備註含「1、2、4燈恆亮」的店</td><td>NT$ 0（免費）</td></tr>
+        <tr><td>資料彙總費</td><td>NT$ 8,000 / 月</td></tr>
+        <tr><td>稅率</td><td>5%（四捨五入）</td></tr>
+      </table>
+
+      <div class="callout callout-info"><strong>ℹ️ 說明</strong>請款明細受密碼保護。查看前需輸入密碼 <code>9588</code>。報表取每店該月最新一筆記錄，跨全部課別合計。</div>
+    </section>
+
+    <section id="s4-5">
+      <h2>4.5 維護管理</h2>
+      <p><strong>用途：</strong>管理系統基礎資料，包含應查核店舖、人員名單與點檢題目。</p>
+      <div class="callout callout-warn"><strong>⚠️ 注意</strong>維護管理功能僅限具管理權限的人員操作，一般點檢人員請勿任意修改。</div>
+
+      <h3>4.5.1 應查核店舖管理</h3>
+      <table>
+        <tr><th>操作</th><th>說明</th></tr>
+        <tr><td>新增店舖</td><td>輸入課別、店名，點擊「新增」</td></tr>
+        <tr><td>刪除店舖</td><td>點擊店舖旁「刪除」，需輸入密碼 9588 確認</td></tr>
+      </table>
+      <p>各課別的店舖清單獨立管理，不互相影響。</p>
+
+      <h3>4.5.2 人員名單管理</h3>
+      <table>
+        <tr><th>操作</th><th>說明</th></tr>
+        <tr><td>新增人員</td><td>輸入課別、姓名，點擊「新增」</td></tr>
+        <tr><td>刪除人員</td><td>點擊人員旁「刪除」，需輸入密碼 9588 確認</td></tr>
+      </table>
+
+      <h3>4.5.3 點檢題目管理</h3>
+      <table>
+        <tr><th>操作</th><th>說明</th></tr>
+        <tr><td>新增題目</td><td>輸入題目文字、通過選項、未通過選項</td></tr>
+        <tr><td>刪除題目</td><td>需輸入密碼 9588 確認</td></tr>
+        <tr><td>調整順序</td><td>拖拉或上下移動題目排序</td></tr>
+      </table>
+    </section>
+
+    <section id="s4-6">
+      <h2>4.6 點檢 SOP</h2>
+      <p><strong>用途：</strong>查閱音樂置換點檢的標準作業程序，了解各項目的檢查標準。</p>
+      <p>點擊頂部橘紅色「<strong>點檢SOP</strong>」頁籤即可查看，內容包含點檢項目說明表格及操作指引。</p>
+      <div class="callout callout-tip"><strong>💡 提示</strong>點檢 SOP 頁籤為唯讀，如需更新 SOP 內容請聯絡系統維護人員。</div>
+    </section>
+
+    <section id="s4-7">
+      <h2>4.7 PWA 安裝（加入手機主畫面）</h2>
+      <p><strong>用途：</strong>將 APP 安裝到手機主畫面，像原生 APP 一樣使用，支援離線讀取已快取的資料。</p>
+
+      <h3>Android 安裝步驟</h3>
+      <ol class="steps">
+        <li>使用 Chrome 開啟系統網址</li>
+        <li>點擊系統頂部出現的「安裝應用程式」橫幅，或點擊瀏覽器右上角選單</li>
+        <li>選擇「新增至主畫面」</li>
+        <li>確認後 APP 圖示出現於主畫面</li>
+      </ol>
+
+      <h3>iOS（iPhone）安裝步驟</h3>
+      <ol class="steps">
+        <li>使用 Safari 開啟系統網址</li>
+        <li>點擊下方分享按鈕（方形＋箭頭圖示）</li>
+        <li>選擇「加入主畫面」</li>
+        <li>點擊「新增」完成安裝</li>
+      </ol>
+
+      <div class="callout callout-info"><strong>ℹ️ 離線功能說明</strong>安裝後，已查詢過的資料可在無網路狀態下讀取。新增或修改記錄需有網路連線。系統頂部會顯示「線上」或「離線」狀態。</div>
+    </section>
+
+    <!-- 5. 角色與權限 -->
+    <section id="s5">
+      <h1>5. 角色與權限</h1>
+
+      <h2>5.1 角色說明</h2>
+      <table>
+        <tr><th>角色</th><th>說明</th><th>適用對象</th></tr>
+        <tr><td>點檢人員</td><td>可執行點檢、查詢記錄、查看報表</td><td>各課別點檢同仁</td></tr>
+        <tr><td>管理人員</td><td>具維護管理功能（店舖、人員、題目管理），可使用密碼 9588 操作刪除、查看請款明細</td><td>各課別負責人</td></tr>
+      </table>
+      <div class="callout callout-info"><strong>ℹ️ 說明</strong>目前系統以密碼（9588）區分管理功能存取，所有登入使用者皆可看到所有頁籤，敏感操作（刪除、請款明細）須輸入密碼確認。</div>
+
+      <h2>5.2 功能與權限對照</h2>
+      <table>
+        <tr><th>功能</th><th>一般登入用戶</th><th>知道管理密碼者</th></tr>
+        <tr><td>登入系統</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>填寫點檢記錄</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>查詢記錄</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>修改記錄</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>刪除記錄</td><td class="cross">✗（需密碼）</td><td class="check">✓（密碼9588）</td></tr>
+        <tr><td>查看點檢結果統計</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>查看請款明細</td><td class="cross">✗（需密碼）</td><td class="check">✓（密碼9588）</td></tr>
+        <tr><td>維護管理（店舖/人員/題目）</td><td class="check">✓（新增）</td><td class="check">✓（含刪除）</td></tr>
+        <tr><td>查看點檢 SOP</td><td class="check">✓</td><td class="check">✓</td></tr>
+      </table>
+    </section>
+
+    <!-- 6. FAQ -->
+    <section id="s6">
+      <h1>6. 常見問題 FAQ</h1>
+
+      <h3>Q1. 登入時出現「帳號或密碼錯誤」？</h3>
+      <p>→ 請確認帳號為 FME EIP 登入帳號，密碼同 EIP 密碼。如密碼正確仍無法登入，請確認公司 EIP 系統是否能正常登入。如 EIP 也無法登入，請聯絡人資或 IT 部門。</p>
+
+      <h3>Q2. 提交點檢記錄時出現「同月同店已有記錄」？</h3>
+      <p>→ 表示該課別、該店舖、本月已有一筆記錄。請至「查詢記錄」頁籤找到原始記錄進行修改，不需重新提交。</p>
+
+      <h3>Q3. 店舖或人員選單是空的？</h3>
+      <p>→ 請確認是否已在「維護管理」頁籤中，依課別新增店舖和人員資料。各課別的資料獨立，請選擇正確課別後再新增。</p>
+
+      <h3>Q4. 系統顯示「離線」但我有網路？</h3>
+      <p>→ 嘗試重新整理頁面（F5 或下拉重整）。若仍顯示離線，請確認是否能開啟其他網站（確認網路連線正常）。</p>
+
+      <h3>Q5. 請款明細無法查看？</h3>
+      <p>→ 查看請款明細需輸入管理密碼 9588。如您有此需求但不知道密碼，請聯絡所屬課別負責人。</p>
+
+      <h3>Q6. 操作時畫面凍結或出現錯誤？</h3>
+      <p>→ 請記下錯誤訊息與發生時間，截圖後回報給系統維護人員。可嘗試重新整理頁面後再操作。</p>
+
+      <h3>Q7. 手機版操作顯示異常？</h3>
+      <p>→ 建議使用 Chrome（Android）或 Safari（iOS）瀏覽器，並確認使用最新版本。</p>
+
+      <h3>Q8. Google Sheets 資料沒有更新？</h3>
+      <p>→ Sheets 同步為非同步操作，通常在幾秒內完成。若超過 1 分鐘仍未更新，請回報給系統維護人員確認同步服務狀態。</p>
+    </section>
+
+    <!-- 7. 版本紀錄 -->
+    <section id="s7">
+      <h1>7. 版本紀錄</h1>
+      <table>
+        <tr><th>版本</th><th>日期</th><th>更新內容</th><th>更新人員</th></tr>
+        <tr><td>v1.0</td><td>2026/07/07</td><td>操作手冊初版建立；新增 XSS 資安修復（esc() 函式）、Dockerfile nginx 版本固定、CI/CD deploy.yml 升級</td><td>資訊負責人</td></tr>
+      </table>
+    </section>
+
+    <!-- 8. 資料保護說明 -->
+    <section id="s8">
+      <h1>8. 資料保護說明</h1>
+      <p>本章節說明本系統儲存之資料範圍及保護措施。</p>
+
+      <h2>8.1 個人資料</h2>
+      <table>
+        <tr><th>欄位</th><th>所在資料表</th><th>資料內容</th><th>儲存方式</th></tr>
+        <tr><td>name（人員姓名）</td><td>staff</td><td>點檢人員姓名</td><td>明文</td></tr>
+        <tr><td>staff（點檢人員）</td><td>records</td><td>提交點檢記錄的人員姓名</td><td>明文</td></tr>
+      </table>
+      <div class="callout callout-warn"><strong>⚠️ 注意</strong>上述欄位含個人資料，資料庫存取應限縮於系統服務帳號，非相關人員不應直接查詢 D1 資料庫。</div>
+
+      <h2>8.2 機敏資料</h2>
+      <p>本系統資料庫欄位經掃描，不含人資類（薪資、人力）或財會類（預算、效益金額）機敏資料。請款金額由前端依規則即時計算，不存入資料庫。</p>
+
+      <h2>8.3 資料保護措施</h2>
+      <table>
+        <tr><th>措施</th><th>說明</th></tr>
+        <tr><td>傳輸加密</td><td>HTTPS（TLS 1.2+），Cloudflare 自動管理憑證</td></tr>
+        <tr><td>XSS 防護</td><td>所有 innerHTML 插值經 esc() 函式 HTML 實體逸脫處理</td></tr>
+        <tr><td>登入速率限制</td><td>每 IP 每分鐘最多 10 次 /api/auth 請求</td></tr>
+        <tr><td>CORS 限制</td><td>Worker API 僅接受 Cloudflare Pages 及 GCP Cloud Run 的請求來源</td></tr>
+        <tr><td>敏感操作確認</td><td>刪除記錄、查看請款明細需輸入密碼確認</td></tr>
+        <tr><td>錯誤訊息保護</td><td>後端不回傳內部錯誤細節（僅回傳 "Internal server error"）</td></tr>
+      </table>
+    </section>
+
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    MUSIC-INSP 音樂置換點檢APP 操作手冊 v1.0 | 2026/07/07 | 日翊文化行銷股份有限公司
+  </div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// 捲動時 active sidebar link
+const links = document.querySelectorAll('.nav-link');
+const sections = document.querySelectorAll('section[id]');
+function onScroll() {
+  let cur = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) cur = s.id; });
+  links.forEach(l => {
+    l.classList.toggle('active', l.getAttribute('href') === '#' + cur);
+  });
+}
+window.addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+</script>
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音樂置換點檢APP 技術包 v1.0</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC','Microsoft JhengHei',monospace,sans-serif;background:#0f1117;color:#e8eef8;line-height:1.7;font-size:14px;}
+a{color:#60a5fa;}
+
+.layout{display:flex;min-height:100vh;}
+.sidebar{width:260px;background:#161b27;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;border-right:1px solid #2d3748;}
+.main{margin-left:260px;flex:1;}
+@media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;}}
+
+.sidebar-header{padding:20px 18px 14px;border-bottom:1px solid #2d3748;}
+.sidebar-badge{font-size:10px;font-weight:700;color:#38bdf8;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.sidebar-title{font-size:14px;font-weight:700;color:#f0f6ff;}
+.nav-group{padding:8px 0;}
+.nav-label{padding:8px 18px 4px;font-size:10px;font-weight:700;color:#4b6280;text-transform:uppercase;letter-spacing:.1em;}
+.nav-link{display:block;padding:6px 18px 6px 22px;font-size:12px;color:#94a3b8;transition:all .15s;border-left:2px solid transparent;}
+.nav-link:hover{background:#1e293b;color:#e2e8f0;text-decoration:none;}
+.nav-link.active{background:#0f3460;color:#60a5fa;border-left-color:#3b82f6;font-weight:700;}
+.nav-sub{padding-left:34px;font-size:11px;}
+
+.page-header{background:linear-gradient(135deg,#0f3460 0%,#1a1a2e 60%,#16213e 100%);padding:40px;border-bottom:1px solid #1e3a5f;}
+.header-badge{font-size:11px;font-weight:700;color:#38bdf8;letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;}
+.header-title{font-size:30px;font-weight:700;color:#f0f6ff;margin-bottom:8px;}
+.header-sub{font-size:14px;color:#94a3b8;margin-bottom:16px;}
+.header-tags{display:flex;gap:10px;flex-wrap:wrap;}
+.tag{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 12px;font-size:11px;color:#94a3b8;}
+.tag-blue{border-color:#1d4ed8;color:#93c5fd;}
+.tag-green{border-color:#166534;color:#86efac;}
+
+.content{padding:40px;}
+@media(max-width:600px){.content{padding:20px 16px;}}
+
+h1{font-size:20px;font-weight:700;color:#f0f6ff;border-bottom:1px solid #1e3a5f;padding-bottom:10px;margin:40px 0 16px;}
+h1:first-child{margin-top:0;}
+h2{font-size:16px;font-weight:700;color:#93c5fd;margin:24px 0 10px;}
+h3{font-size:14px;font-weight:700;color:#60a5fa;margin:18px 0 8px;}
+p{margin-bottom:10px;color:#cbd5e1;}
+ul,ol{margin:8px 0 10px 22px;color:#cbd5e1;}
+li{margin-bottom:4px;}
+
+/* Code */
+pre{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:16px 20px;overflow-x:auto;font-size:13px;line-height:1.6;margin:12px 0;}
+code{font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:13px;color:#e6edf3;}
+.code-inline{background:#1e2d3d;color:#79c0ff;padding:2px 7px;border-radius:4px;font-family:'Cascadia Code',monospace;font-size:12px;}
+
+/* Table */
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;}
+th{background:#1e3a5f;color:#93c5fd;padding:10px 12px;text-align:left;font-weight:700;border:1px solid #2d3748;}
+td{padding:8px 12px;border:1px solid #1e293b;color:#cbd5e1;}
+tr:nth-child(even) td{background:#111827;}
+tr:hover td{background:#1a2332;}
+
+/* Callout */
+.callout{border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;color:#cbd5e1;}
+.callout-info{background:#0c1e3d;border-left:3px solid #3b82f6;}
+.callout-warn{background:#1c1000;border-left:3px solid #f59e0b;}
+.callout-danger{background:#1a0a0a;border-left:3px solid #ef4444;}
+.callout-tip{background:#061a0e;border-left:3px solid #22c55e;}
+.callout strong{display:block;margin-bottom:4px;font-size:12px;letter-spacing:.05em;}
+.callout-info strong{color:#60a5fa;}
+.callout-warn strong{color:#fbbf24;}
+.callout-danger strong{color:#f87171;}
+.callout-tip strong{color:#4ade80;}
+
+/* Architecture diagram */
+.arch-box{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:20px;font-family:'Cascadia Code',monospace;font-size:12px;color:#e6edf3;line-height:1.8;margin:12px 0;overflow-x:auto;}
+
+/* Method badge */
+.method{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;font-family:monospace;}
+.get{background:#0a2e1a;color:#4ade80;border:1px solid #166534;}
+.post{background:#0a1a2e;color:#60a5fa;border:1px solid #1d4ed8;}
+.put{background:#1a1000;color:#fbbf24;border:1px solid #b45309;}
+.delete{background:#1a0808;color:#f87171;border:1px solid #991b1b;}
+
+/* Section divider */
+.section-divider{border:none;border-top:1px solid #1e293b;margin:32px 0;}
+
+/* Footer */
+.page-footer{background:#0a0f1a;border-top:1px solid #1e293b;padding:20px 40px;font-size:11px;color:#4b6280;text-align:center;margin-top:40px;}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-badge">Technical Package</div>
+    <div class="sidebar-title">音樂置換點檢APP<br>技術包 v1.0</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">架構設計</div>
+    <a class="nav-link" href="#s1">1. 系統概述</a>
+    <a class="nav-link" href="#s2">2. 技術架構</a>
+    <a class="nav-link" href="#s3">3. 資料庫 Schema</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">API 文件</div>
+    <a class="nav-link" href="#s4">4. API 端點總覽</a>
+    <a class="nav-link nav-sub" href="#api-auth">4.1 認證 /api/auth</a>
+    <a class="nav-link nav-sub" href="#api-records">4.2 記錄 /api/records</a>
+    <a class="nav-link nav-sub" href="#api-stores">4.3 店舖 /api/stores</a>
+    <a class="nav-link nav-sub" href="#api-staff">4.4 人員 /api/staff</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">維運部署</div>
+    <a class="nav-link" href="#s5">5. 驗證流程</a>
+    <a class="nav-link" href="#s6">6. CI/CD 流程</a>
+    <a class="nav-link" href="#s7">7. 手動部署指令</a>
+    <a class="nav-link" href="#s8">8. Secrets & 環境變數</a>
+    <a class="nav-link" href="#s9">9. 資安紀錄</a>
+    <a class="nav-link" href="#s10">10. 已知限制 & 技術債</a>
+  </div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+<div class="page-header">
+  <div class="header-badge">Technical Package · MUSIC-INSP</div>
+  <div class="header-title">🎵 音樂置換點檢APP 技術包</div>
+  <div class="header-sub">Music Inspection System — Technical Reference v1.0</div>
+  <div class="header-tags">
+    <span class="tag tag-blue">Cloudflare Workers + D1</span>
+    <span class="tag tag-blue">Cloudflare Pages</span>
+    <span class="tag tag-green">GCP Cloud Run</span>
+    <span class="tag">GitHub Actions CI/CD</span>
+    <span class="tag">PWA</span>
+    <span class="tag">v1.0 · 2026/07/07</span>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- 1. 系統概述 -->
+<section id="s1">
+<h1>1. 系統概述</h1>
+
+<table>
+  <tr><th width="200">項目</th><th>值</th></tr>
+  <tr><td>系統名稱</td><td>音樂置換點檢 APP</td></tr>
+  <tr><td>系統代號</td><td>MUSIC-INSP</td></tr>
+  <tr><td>GCP Project ID</td><td><code class="code-inline">c000-493901</code></td></tr>
+  <tr><td>GCP Region</td><td><code class="code-inline">asia-east1</code></td></tr>
+  <tr><td>GitHub Repo</td><td><a href="https://github.com/amywang828/music-inspection">amywang828/music-inspection</a></td></tr>
+  <tr><td>前端 URL</td><td><a href="https://music-inspection.pages.dev">https://music-inspection.pages.dev</a></td></tr>
+  <tr><td>後端 API URL</td><td><a href="https://music-inspection-api.a0955944828.workers.dev">https://music-inspection-api.a0955944828.workers.dev</a></td></tr>
+  <tr><td>GCP Proxy URL</td><td><a href="https://music-inspect-403438157899.asia-east1.run.app">https://music-inspect-403438157899.asia-east1.run.app</a></td></tr>
+  <tr><td>Google Sheets 備份</td><td><a href="https://docs.google.com/spreadsheets/d/1wH0edfIlU4B4VzaDTFkzbHBfIMDTGOW81i1JCAUCQ98">試算表連結</a></td></tr>
+</table>
+
+<p>本系統為<strong>單一頁面應用（SPA）＋ Serverless 後端</strong>架構。前端為單一 <code class="code-inline">index.html</code>（約 271KB），全部邏輯內嵌，無前端框架依賴。後端使用 Cloudflare Workers + D1（SQLite 相容），支援 PWA 離線安裝。</p>
+</section>
+
+<hr class="section-divider">
+
+<!-- 2. 技術架構 -->
+<section id="s2">
+<h1>2. 技術架構</h1>
+
+<div class="arch-box">
+┌─────────────────────────────────────────────────────┐
+│                   使用者裝置（手機 / 電腦）            │
+│                  Chrome / Safari + PWA               │
+└────────────────────────┬────────────────────────────┘
+                         │ HTTPS
+           ┌─────────────▼─────────────┐
+           │     Cloudflare Pages       │
+           │   (index.html, sw.js,      │
+           │    manifest.json, icons)   │
+           └─────┬───────────────┬─────┘
+                 │ /api/*        │ /api/auth
+    ┌────────────▼──────┐   ┌───▼──────────────────┐
+    │ Cloudflare Workers │   │   GCP Cloud Run       │
+    │   (worker.js)      │   │   music-inspect       │
+    │                    │   │   (nginx proxy)        │
+    │  ┌──────────────┐  │   └───────────┬──────────┘
+    │  │ Cloudflare D1│  │               │ proxy_pass
+    │  │  (SQLite)    │  │   ┌───────────▼──────────┐
+    │  └──────────────┘  │   │ FME CheckUserId API   │
+    │                    │   │ (eip.fme.com.tw)       │
+    │  ┌──────────────┐  │   │ 公司內網               │
+    │  │ Google Apps  │  │   └──────────────────────┘
+    │  │ Script (GAS) │  │
+    │  │ → Sheets 備份│  │
+    │  └──────────────┘  │
+    └────────────────────┘
+</div>
+
+<h2>各元件說明</h2>
+<table>
+  <tr><th>元件</th><th>技術</th><th>職責</th></tr>
+  <tr><td>前端</td><td>Vanilla JS HTML（單一檔案）</td><td>UI、表單、報表、PWA 離線快取</td></tr>
+  <tr><td>後端 API</td><td>Cloudflare Workers（V8 isolate）</td><td>REST API、資料 CRUD、Sheets 同步</td></tr>
+  <tr><td>資料庫</td><td>Cloudflare D1（SQLite）</td><td>點檢記錄、店舖主檔、人員名單</td></tr>
+  <tr><td>驗證代理</td><td>GCP Cloud Run + nginx</td><td>代理 FME 內網 API（Cloudflare IP 被封）</td></tr>
+  <tr><td>即時備份</td><td>Google Apps Script</td><td>同步至 Google Sheets</td></tr>
+  <tr><td>PWA</td><td>Service Worker v4</td><td>GET 請求快取、離線讀取</td></tr>
+  <tr><td>CI/CD</td><td>GitHub Actions</td><td>自動部署（push to main 觸發）</td></tr>
+</table>
+
+<h2>CORS 設定</h2>
+<p>Worker 僅允許以下 Origin：</p>
+<pre><code>const ALLOWED_ORIGINS = [
+  'https://music-inspection.pages.dev',
+  'https://music-inspect-403438157899.asia-east1.run.app',
+];</code></pre>
+
+<h2>Service Worker 快取策略</h2>
+<table>
+  <tr><th>請求類型</th><th>策略</th></tr>
+  <tr><td>GET（靜態資源、API GET）</td><td>快取優先（cache-first）</td></tr>
+  <tr><td>POST / PUT / DELETE</td><td>不快取，直接網路請求</td></tr>
+</table>
+</section>
+
+<hr class="section-divider">
+
+<!-- 3. DB Schema -->
+<section id="s3">
+<h1>3. 資料庫 Schema（Cloudflare D1）</h1>
+
+<h2>records（點檢記錄）</h2>
+<pre><code>CREATE TABLE records (
+  id          TEXT PRIMARY KEY,
+  -- 格式: {course}_{yyyyMMddHHmmss}_{random4}
+  -- 例:   n1_20260707143022_a1b2
+
+  store       TEXT NOT NULL,     -- 店名（對應 stores.name）
+  staff       TEXT NOT NULL,     -- 點檢人員姓名
+  dept        TEXT,              -- 部別代號（n1/n2/.../gp）
+  course      TEXT NOT NULL,     -- 課別代號（n1/n2/.../gp）
+  date        TEXT NOT NULL,     -- 點檢日期 YYYY-MM-DD
+  answers     TEXT,              -- JSON: {"q1":{"v":"Y","x":""},...}
+  nm_reason   TEXT,              -- 未通過原因
+  pass_all    INTEGER DEFAULT 0, -- 1=全通過, 0=有未通過
+  pass_count  INTEGER DEFAULT 0, -- 通過題數
+  total       INTEGER DEFAULT 0, -- 題目總數
+  edit_log    TEXT DEFAULT '[]', -- JSON: [{editor,time}]
+  created_at  INTEGER            -- Unix timestamp (ms)
+);</code></pre>
+
+<h2>stores（店舖主檔）</h2>
+<pre><code>CREATE TABLE stores (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  course      TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  type        TEXT DEFAULT 'M',  -- 店型
+  grp         TEXT DEFAULT '',   -- 群組
+  last_date   TEXT,              -- 最後點檢日期 YYYY-MM-DD
+  created_at  INTEGER,
+  UNIQUE(course, name)           -- 同課別不重複店名
+);</code></pre>
+
+<h2>staff（人員名單）</h2>
+<pre><code>CREATE TABLE staff (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  course      TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  created_at  INTEGER,
+  UNIQUE(course, name)
+);</code></pre>
+
+<h2>課別代號對應</h2>
+<table>
+  <tr><th>課別代號</th><th>課別名稱</th><th>所屬部別</th></tr>
+  <tr><td><code class="code-inline">n1</code></td><td>北一課</td><td>盤點一部</td></tr>
+  <tr><td><code class="code-inline">n2</code></td><td>北二課</td><td>盤點一部</td></tr>
+  <tr><td><code class="code-inline">n3</code></td><td>北三課</td><td>盤點一部</td></tr>
+  <tr><td><code class="code-inline">n4</code></td><td>北四課</td><td>盤點一部</td></tr>
+  <tr><td><code class="code-inline">tz</code></td><td>桃竹課</td><td>盤點一部</td></tr>
+  <tr><td><code class="code-inline">tc</code></td><td>台中課</td><td>盤點二部</td></tr>
+  <tr><td><code class="code-inline">jn</code></td><td>嘉南課</td><td>盤點二部</td></tr>
+  <tr><td><code class="code-inline">gp</code></td><td>高屏課</td><td>盤點二部</td></tr>
+</table>
+</section>
+
+<hr class="section-divider">
+
+<!-- 4. API -->
+<section id="s4">
+<h1>4. API 端點總覽</h1>
+<p>Base URL：<code class="code-inline">https://music-inspection-api.a0955944828.workers.dev</code></p>
+
+<table>
+  <tr><th>Method</th><th>路徑</th><th>功能</th></tr>
+  <tr><td><span class="method post">POST</span></td><td>/api/auth</td><td>FME 帳號驗證（代理）</td></tr>
+  <tr><td><span class="method get">GET</span></td><td>/api/records</td><td>查詢點檢記錄</td></tr>
+  <tr><td><span class="method post">POST</span></td><td>/api/records</td><td>新增點檢記錄</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td>/api/records/:id</td><td>修改點檢記錄</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td>/api/records/:id</td><td>刪除點檢記錄</td></tr>
+  <tr><td><span class="method get">GET</span></td><td>/api/stores</td><td>取得店舖清單</td></tr>
+  <tr><td><span class="method post">POST</span></td><td>/api/stores</td><td>新增店舖</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td>/api/stores/:id</td><td>刪除店舖</td></tr>
+  <tr><td><span class="method get">GET</span></td><td>/api/staff</td><td>取得人員清單</td></tr>
+  <tr><td><span class="method post">POST</span></td><td>/api/staff</td><td>新增人員</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td>/api/staff/:id</td><td>刪除人員</td></tr>
+</table>
+
+<section id="api-auth">
+<h2>4.1 POST /api/auth</h2>
+<p>透過 GCP Cloud Run 代理呼叫 FME CheckUserId API 驗證員工帳號。</p>
+<div class="callout callout-warn"><strong>⚠️ 速率限制</strong>每 IP 每分鐘最多 10 次。超過回傳 429。</div>
+<h3>Request</h3>
+<pre><code>Content-Type: application/json
+
+{
+  "USER_ID": "abc12345",
+  "PSW": "password"
+}</code></pre>
+<h3>Response（轉發 FME 回傳）</h3>
+<pre><code>// 成功
+{ "MSG": "Login Success", "CODE": "0" }
+
+// 失敗
+{ "MSG": "帳號或密碼錯誤", "CODE": "1" }
+
+// 速率限制
+{ "MSG": "429 請求過於頻繁，請稍後再試" }  // HTTP 429</code></pre>
+</section>
+
+<section id="api-records">
+<h2>4.2 Records API</h2>
+
+<h3>GET /api/records</h3>
+<table>
+  <tr><th>Query Param</th><th>型別</th><th>說明</th></tr>
+  <tr><td>course</td><td>string</td><td>課別篩選（n1/n2/.../gp）</td></tr>
+  <tr><td>from</td><td>string</td><td>起始日期 YYYY-MM-DD</td></tr>
+  <tr><td>to</td><td>string</td><td>結束日期 YYYY-MM-DD</td></tr>
+</table>
+<p>回傳陣列，Worker 端自動正規化：<code class="code-inline">answers</code> JSON 字串→物件、<code class="code-inline">snake_case</code>→<code class="code-inline">camelCase</code>。</p>
+<pre><code>[
+  {
+    "id": "n1_20260707143022_a1b2",
+    "store": "店名",
+    "staff": "點檢人員",
+    "dept": "n1",
+    "course": "n1",
+    "date": "2026-07-07",
+    "answers": { "q1": { "v": "Y", "x": "" } },
+    "nmReason": "",
+    "passAll": true,
+    "passCount": 10,
+    "total": 10,
+    "editLog": [],
+    "created_at": 1751874622000
+  }
+]</code></pre>
+
+<h3>POST /api/records</h3>
+<div class="callout callout-info"><strong>ℹ️ 同月同店防重複</strong>同課別+店舖+月份已存在時回傳 HTTP 409 <code class="code-inline">{"error":"同月同店已有記錄","duplicate":true}</code>。</div>
+<pre><code>// Request Body
+{
+  "id": "n1_20260707143022_a1b2",  // 必填
+  "store": "店名",                  // 必填
+  "staff": "點檢人員",              // 必填
+  "dept": "n1",
+  "course": "n1",                  // 必填
+  "date": "2026-07-07",            // 必填
+  "answers": { "q1": { "v": "Y", "x": "" } },
+  "nmReason": "",
+  "passAll": true,
+  "passCount": 10,
+  "total": 10
+}
+
+// Side effects:
+// 1. UPDATE stores SET last_date = date
+// 2. 非同步 syncToSheets({ action: 'insert', record })
+
+// Response (成功)
+{ "ok": true }</code></pre>
+
+<h3>PUT /api/records/:id</h3>
+<p>修改記錄。自動在 <code class="code-inline">edit_log</code> 追加 <code class="code-inline">{editor, time}</code>。</p>
+<pre><code>// Request Body（含 editor 欄位）
+{ ...record, "editor": "修改人姓名" }
+
+// Side effects: syncToSheets({ action: 'update' })</code></pre>
+
+<h3>DELETE /api/records/:id</h3>
+<pre><code>// Response (成功)
+{ "ok": true }
+
+// Side effects: syncToSheets({ action: 'delete', id })</code></pre>
+</section>
+
+<section id="api-stores">
+<h2>4.3 Stores API</h2>
+<h3>GET /api/stores?course=n1</h3>
+<pre><code>[{ "id":1, "course":"n1", "name":"店名", "type":"M", "grp":"", "last_date":"2026-07-07" }]</code></pre>
+
+<h3>POST /api/stores</h3>
+<p>支援單筆物件或陣列。使用 <code class="code-inline">INSERT OR IGNORE</code>（重複不報錯）。</p>
+<pre><code>// 單筆
+{ "course": "n1", "name": "店名" }
+
+// 陣列
+[{ "course": "n1", "name": "店A" }, { "course": "n1", "name": "店B" }]
+
+// Response
+{ "ok": true, "count": 2 }</code></pre>
+
+<h3>DELETE /api/stores/:id</h3>
+<pre><code>{ "ok": true }</code></pre>
+</section>
+
+<section id="api-staff">
+<h2>4.4 Staff API</h2>
+<p>同 Stores API 結構，對應 <code class="code-inline">staff</code> 資料表。</p>
+<pre><code>GET    /api/staff?course=n1
+POST   /api/staff  → { course, name }
+DELETE /api/staff/:id</code></pre>
+</section>
+
+</section>
+
+<hr class="section-divider">
+
+<!-- 5. 驗證流程 -->
+<section id="s5">
+<h1>5. 驗證流程</h1>
+
+<div class="arch-box">
+前端登入表單
+  │ POST /api/auth { USER_ID, PSW }
+  ▼
+Cloudflare Worker /api/auth
+  │ 1. 速率限制：10次/分/IP（Map-based，重啟失效）
+  │ 2. POST https://music-inspect-403438157899.asia-east1.run.app/auth
+  ▼
+GCP Cloud Run (music-inspect / nginx)
+  │ proxy_pass https://eip.fme.com.tw/FMEIP/AasApi/CheckUserId
+  │ proxy_ssl_server_name on
+  │ proxy_set_header Host eip.fme.com.tw
+  ▼
+FME 公司內網 CheckUserId API
+  │ 回傳 { MSG, CODE }
+  ▼
+前端判斷 CODE === '0' → 登入成功
+→ 狀態存入 sessionStorage（關閉分頁即清除）
+</div>
+
+<div class="callout callout-info"><strong>ℹ️ 為何需要 GCP Proxy？</strong>Cloudflare Workers 的出口 IP 被 FME 公司防火牆封鎖。透過 GCP Cloud Run（固定 IP 段）代理，可正常存取公司內網 API。</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 6. CI/CD -->
+<section id="s6">
+<h1>6. CI/CD 流程（GitHub Actions）</h1>
+<p>觸發條件：<code class="code-inline">push to main branch</code></p>
+
+<div class="arch-box">
+┌─────────────────────────────────────────────────┐
+│ GitHub Actions: .github/workflows/deploy.yml     │
+│ version: 2.1.8 (github-action-n skill)           │
+└─────────────────────────────────────────────────┘
+
+Step 1: Checkout (actions/checkout@v4)
+  ↓
+Step 2: 資安報告檢查
+  security-report-YYYYMMDD-*.docx 需存在當日
+  → 不存在則部署中止（exit 1）
+  ↓
+Step 3: Authenticate to Google Cloud (OAuth2)
+  GCP_CREDENTIALS secret → 取得 access_token
+  ↓
+Step 4: Docker login to Artifact Registry
+  asia-east1-docker.pkg.dev
+  ↓
+Step 5: Build and push Docker image
+  IMAGE=asia-east1-docker.pkg.dev/c000-493901/
+         cloud-run-source-deploy/music-inspect
+  → 取得 DIGEST (sha256:...)
+  ↓
+Step 6: Deploy to Cloud Run (no_traffic)
+  REST API PATCH → 部署新 revision，traffic=0%
+  ↓
+Step 7: Get deployed revision
+  ↓
+Step 8: Wait for container scan results (900s)
+  RESOURCE_URL = https://IMAGE@DIGEST
+  Container Analysis API polling（30s interval）
+  → SCAN_TIMEOUT: 逾時改為警告並繼續（IAM 不足）
+  → FINISHED_SUCCESS: 檢查 HIGH/CRITICAL 漏洞數
+  ↓
+Step 9a: Open traffic (high==0) → traffic=100%
+Step 9b: Keep traffic at 0 (high!=0) → exit 1
+</div>
+
+<div class="callout callout-warn"><strong>⚠️ 每日 OAuth2 token 失效問題</strong><code class="code-inline">wej5217@fme.com.tw</code> 為公司 Google Workspace 帳號，refresh token 約每 24 小時失效。每次部署前需執行 <code class="code-inline">gcloud auth application-default login</code> 並更新 GitHub Secret。</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 7. 手動部署 -->
+<section id="s7">
+<h1>7. 手動部署指令</h1>
+
+<h2>更新 GCP_CREDENTIALS Secret（每次部署前）</h2>
+<pre><code># Step 1: 取得新 token（會開啟瀏覽器）
+gcloud auth application-default login
+
+# Step 2: 更新 GitHub Secret
+Get-Content "$env:APPDATA\gcloud\application_default_credentials.json" -Raw `
+  | gh secret set GCP_CREDENTIALS --repo amywang828/music-inspection</code></pre>
+
+<h2>觸發 GitHub Actions 部署</h2>
+<pre><code># 方法 A: 空 commit 觸發
+git commit --allow-empty -m "chore: 觸發部署"
+git push
+
+# 方法 B: 正常 commit（有修改時）
+git add .
+git commit -m "feat: 功能說明"
+git push</code></pre>
+
+<h2>GCP Cloud Run 手動重新部署（驗證代理）</h2>
+<pre><code>cd gcp
+gcloud run deploy music-inspect \
+  --source . \
+  --region asia-east1 \
+  --platform managed \
+  --port 8080
+
+gcloud run services update music-inspect \
+  --region=asia-east1 \
+  --update-annotations="run.googleapis.com/invoker-iam-disabled=true,\
+run.googleapis.com/ingress=all"</code></pre>
+
+<h2>監控 GitHub Actions 狀態</h2>
+<pre><code># 列出最近 run
+gh run list --repo amywang828/music-inspection --limit 5
+
+# 查看指定 run 詳情
+gh run view {RUN_ID} --repo amywang828/music-inspection
+
+# 查看失敗 log
+gh run view --log-failed {RUN_ID} --repo amywang828/music-inspection</code></pre>
+
+<h2>Cloudflare Workers / Pages 重新部署</h2>
+<pre><code># Workers（後端 API）
+wrangler deploy worker.js --name music-inspection-api
+
+# Pages（前端）- 推 git 自動觸發，或透過 Cloudflare Dashboard</code></pre>
+</section>
+
+<hr class="section-divider">
+
+<!-- 8. Secrets -->
+<section id="s8">
+<h1>8. Secrets &amp; 環境變數</h1>
+
+<h2>GitHub Secrets</h2>
+<table>
+  <tr><th>Secret 名稱</th><th>說明</th><th>更新頻率</th></tr>
+  <tr><td>GCP_CREDENTIALS</td><td>GCP OAuth2 application default credentials JSON</td><td>每日（token 失效時）</td></tr>
+  <tr><td>CLOUDFLARE_API_TOKEN</td><td>Cloudflare 部署 token</td><td>按需</td></tr>
+  <tr><td>CLOUDFLARE_ACCOUNT_ID</td><td>Cloudflare 帳號 ID</td><td>固定</td></tr>
+</table>
+
+<h2>Cloudflare Workers Bindings（wrangler.toml）</h2>
+<table>
+  <tr><th>Binding</th><th>類型</th><th>說明</th></tr>
+  <tr><td>DB</td><td>D1 Database</td><td>點檢記錄資料庫</td></tr>
+</table>
+
+<h2>GCP 資源清單</h2>
+<table>
+  <tr><th>資源</th><th>名稱</th><th>區域</th></tr>
+  <tr><td>Cloud Run Service</td><td>music-inspect</td><td>asia-east1</td></tr>
+  <tr><td>Artifact Registry Repo</td><td>cloud-run-source-deploy</td><td>asia-east1</td></tr>
+  <tr><td>Project ID</td><td>c000-493901</td><td>—</td></tr>
+</table>
+
+<div class="callout callout-danger"><strong>🚫 IAM 限制（目前）</strong><code class="code-inline">wej5217@fme.com.tw</code> 缺少以下權限，需管理員授予：
+<br>• <code class="code-inline">containeranalysis.occurrences.list</code> — Container scan 結果讀取
+<br>• <code class="code-inline">resourcemanager.projects.getIamPolicy</code> — 查看專案 IAM 設定
+<br>• <code class="code-inline">iam.workloadIdentityPoolProviders.get</code> — WIF 設定</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 9. 資安紀錄 -->
+<section id="s9">
+<h1>9. 資安紀錄</h1>
+<p>資安掃描執行日期：2026/07/06（security-scanner skill v1.0）</p>
+
+<table>
+  <tr><th>#</th><th>嚴重度</th><th>問題</th><th>狀態</th></tr>
+  <tr><td>1</td><td style="color:#fbbf24">Medium</td><td>XSS：7 處 innerHTML 未逸脫</td><td style="color:#4ade80">✅ 已自動修復（esc()）</td></tr>
+  <tr><td>2</td><td style="color:#fbbf24">Medium</td><td>API 端點缺少身分驗證 token</td><td style="color:#f87171">⏳ 待手動修復</td></tr>
+  <tr><td>3</td><td style="color:#86efac">Low</td><td>請款密碼 9588 前端明文</td><td style="color:#f87171">⏳ 待手動修復</td></tr>
+  <tr><td>4</td><td style="color:#86efac">Low</td><td>Dockerfile 浮動 nginx 版本</td><td style="color:#4ade80">✅ 已修復（nginx:stable-alpine）</td></tr>
+  <tr><td>5</td><td style="color:#86efac">Low</td><td>Rate Limiter 非持久（重啟失效）</td><td style="color:#f87171">⏳ 待手動修復</td></tr>
+  <tr><td>6</td><td style="color:#93c5fd">Info</td><td>缺少 Content-Security-Policy</td><td style="color:#94a3b8">記錄備查</td></tr>
+  <tr><td>7</td><td style="color:#93c5fd">Info</td><td>API URL 硬編碼前端</td><td style="color:#94a3b8">非機敏，無需修復</td></tr>
+</table>
+
+<h2>XSS 修復（已完成）</h2>
+<p>在 <code class="code-inline">index.html</code> <code class="code-inline">const API</code> 宣告後新增 <code class="code-inline">esc()</code> 函式：</p>
+<pre><code>function esc(s){
+  return String(s==null?'':s)
+    .replace(/&amp;/g,'&amp;amp;')
+    .replace(/&lt;/g,'&amp;lt;')
+    .replace(/&gt;/g,'&amp;gt;')
+    .replace(/"/g,'&amp;quot;')
+    .replace(/'/g,'&amp;#39;');
+}</code></pre>
+<p>修復位置：L1202（店舖清單）、L1210（人員清單）、L1385-1387（檢視記錄）、L1402（編輯記錄）、L1746（店舖管理）、L1761（人員管理）、L1772（題目管理）</p>
+</section>
+
+<hr class="section-divider">
+
+<!-- 10. 技術債 -->
+<section id="s10">
+<h1>10. 已知限制 &amp; 技術債</h1>
+<table>
+  <tr><th>項目</th><th>嚴重度</th><th>說明</th><th>建議解法</th></tr>
+  <tr><td>API 無 JWT 驗證</td><td style="color:#fbbf24">Medium</td><td>Worker 路由無 session token 驗證</td><td>登入後 Worker 發 JWT，前端帶 Authorization header</td></tr>
+  <tr><td>請款密碼前端明文</td><td style="color:#86efac">Low</td><td>密碼 9588 寫死 index.html</td><td>移至 Worker /api/verify-pw，timingSafeEqual 比對</td></tr>
+  <tr><td>Rate Limiter 非持久</td><td style="color:#86efac">Low</td><td>Map 存於記憶體，重啟清空</td><td>改用 Cloudflare KV 或 Durable Objects</td></tr>
+  <tr><td>GCP token 每日失效</td><td style="color:#fbbf24">維運</td><td>公司 Google Workspace 短期 refresh token</td><td>請管理員建立 Service Account Key（永久有效）</td></tr>
+  <tr><td>Container scan 無權限</td><td>維運</td><td>containeranalysis.occurrences.list 缺失</td><td>管理員授予 roles/containeranalysis.occurrences.viewer</td></tr>
+  <tr><td>WIF 未啟用</td><td>維運</td><td>WIF provider 屬性條件不允許此 repo</td><td>管理員更新 WIF attribute condition</td></tr>
+  <tr><td>單一 HTML 架構</td><td>維護性</td><td>~271KB，難模組化</td><td>長期：考慮拆分為 Vite/Vue 多檔案架構</td></tr>
+</table>
+</section>
+
+</div><!-- /content -->
+
+<div class="page-footer">
+  MUSIC-INSP 技術包 v1.0 | 2026/07/07 | 日翊文化行銷股份有限公司 · 盤點本部
+</div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+const links = document.querySelectorAll('.nav-link');
+const sections = document.querySelectorAll('section[id]');
+function onScroll() {
+  let cur = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 60) cur = s.id; });
+  links.forEach(l => {
+    l.classList.toggle('active', l.getAttribute('href') === '#' + cur);
+  });
+}
+window.addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+</script>
+</body>
+</html>

@@ -1,8 +1,9 @@
-FROM nginx:stable-alpine
-RUN apk update && apk upgrade --no-cache && apk add --no-cache openssl
+FROM nginx:mainline-alpine
+RUN apk update && apk upgrade --no-cache && apk add --no-cache openssl ca-certificates && rm -rf /var/cache/apk/*
 
 RUN printf 'server {\n\
     listen 8080;\n\
+    server_tokens off;\n\
 \n\
     # FME 帳號驗證代理\n\
     location /auth {\n\
@@ -21,6 +22,9 @@ RUN printf 'server {\n\
         proxy_set_header X-Real-IP $remote_addr;\n\
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
         proxy_hide_header X-Frame-Options;\n\
+        add_header X-Frame-Options "SAMEORIGIN" always;\n\
+        add_header X-Content-Type-Options "nosniff" always;\n\
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;\n\
         proxy_redirect https://music-inspection.pages.dev/ /;\n\
     }\n\
 }\n' > /etc/nginx/conf.d/default.conf
