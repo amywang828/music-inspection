@@ -42,25 +42,30 @@ jobs:
         env:
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS }}
         run: |
+          # Strip UTF-8 BOM (PowerShell pipe 會加 BOM)
           echo "$GCP_CREDENTIALS_JSON" | \
             python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(json.dumps(d),end='')" \
             > /tmp/gcp_creds.json
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp_creds.json
-          gcloud auth application-default print-access-token \
-            > /tmp/gcp_token.txt 2>/tmp/gcp_err.txt || true
-          ACCESS_TOKEN=$(cat /tmp/gcp_token.txt 2>/dev/null || echo "")
+          # 從 JSON 取出 OAuth2 欄位（用 curl 直接換 token，跳過 gcloud 重驗證限制）
+          CLIENT_ID=$(python3 -c "import json; print(json.load(open('/tmp/gcp_creds.json'))['client_id'])")
+          CLIENT_SECRET=$(python3 -c "import json; print(json.load(open('/tmp/gcp_creds.json'))['client_secret'])")
+          REFRESH_TOKEN=$(python3 -c "import json; print(json.load(open('/tmp/gcp_creds.json'))['refresh_token'])")
+          RESP=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
+            -H "Content-Type: application/json" \
+            -d "{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"grant_type\":\"refresh_token\"}")
+          ACCESS_TOKEN=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null || echo "")
           if [ -z "$ACCESS_TOKEN" ]; then
-            echo "::error::GCP 認證失敗，gcloud 回傳："
-            cat /tmp/gcp_err.txt || true
+            ERROR=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error','?'), '-', d.get('error_description',''))" 2>/dev/null || echo "unknown")
+            echo "::error::GCP OAuth2 失敗：$ERROR"
             echo "::error::請在本機重新執行："
             echo "::error::  gcloud auth application-default login"
             echo "::error::  gh secret set GCP_CREDENTIALS --repo amywang828/music-inspection --input \"\$env:APPDATA\\gcloud\\application_default_credentials.json\""
-            rm -f /tmp/gcp_creds.json /tmp/gcp_token.txt /tmp/gcp_err.txt
+            rm -f /tmp/gcp_creds.json
             exit 1
           fi
           echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
-          rm -f /tmp/gcp_creds.json /tmp/gcp_token.txt /tmp/gcp_err.txt
+          rm -f /tmp/gcp_creds.json
 
       - name: Docker login to Artifact Registry
         run: |
