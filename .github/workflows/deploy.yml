@@ -37,19 +37,26 @@ jobs:
           fi
           echo "Security report confirmed: $REPORT"
 
-      - name: Authenticate to Google Cloud (OAuth2)
+      - name: Authenticate to Google Cloud
         id: gcp_token
+        env:
+          GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS }}
         run: |
-          CREDS='${{ secrets.GCP_CREDENTIALS }}'
-          CLIENT_ID=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['client_id'])")
-          CLIENT_SECRET=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['client_secret'])")
-          REFRESH_TOKEN=$(echo "$CREDS" | python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(d['refresh_token'])")
-          ACCESS_TOKEN=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
-            -H "Content-Type: application/json" \
-            -d "{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"grant_type\":\"refresh_token\"}" \
-            | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+          echo "$GCP_CREDENTIALS_JSON" > /tmp/gcp_creds.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp_creds.json
+          ACCESS_TOKEN=$(gcloud auth application-default print-access-token 2>/tmp/gcp_err.txt)
+          if [ -z "$ACCESS_TOKEN" ]; then
+            echo "::error::GCP 認證失敗，原因："
+            cat /tmp/gcp_err.txt | head -10
+            echo "::error::請在本機重新執行："
+            echo "::error::  gcloud auth application-default login"
+            echo "::error::  gh secret set GCP_CREDENTIALS --repo amywang828/music-inspection --input \"\$env:APPDATA\\gcloud\\application_default_credentials.json\""
+            rm -f /tmp/gcp_creds.json /tmp/gcp_err.txt
+            exit 1
+          fi
           echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+          rm -f /tmp/gcp_creds.json /tmp/gcp_err.txt
 
       - name: Docker login to Artifact Registry
         run: |
