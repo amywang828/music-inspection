@@ -44,19 +44,21 @@ jobs:
         run: |
           echo "$GCP_CREDENTIALS_JSON" > /tmp/gcp_creds.json
           export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp_creds.json
-          ACCESS_TOKEN=$(gcloud auth application-default print-access-token 2>/tmp/gcp_err.txt)
+          gcloud auth application-default print-access-token \
+            > /tmp/gcp_token.txt 2>/tmp/gcp_err.txt || true
+          ACCESS_TOKEN=$(cat /tmp/gcp_token.txt 2>/dev/null || echo "")
           if [ -z "$ACCESS_TOKEN" ]; then
-            echo "::error::GCP 認證失敗，原因："
-            cat /tmp/gcp_err.txt | head -10
+            echo "::error::GCP 認證失敗，gcloud 回傳："
+            cat /tmp/gcp_err.txt || true
             echo "::error::請在本機重新執行："
             echo "::error::  gcloud auth application-default login"
             echo "::error::  gh secret set GCP_CREDENTIALS --repo amywang828/music-inspection --input \"\$env:APPDATA\\gcloud\\application_default_credentials.json\""
-            rm -f /tmp/gcp_creds.json /tmp/gcp_err.txt
+            rm -f /tmp/gcp_creds.json /tmp/gcp_token.txt /tmp/gcp_err.txt
             exit 1
           fi
           echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
-          rm -f /tmp/gcp_creds.json /tmp/gcp_err.txt
+          rm -f /tmp/gcp_creds.json /tmp/gcp_token.txt /tmp/gcp_err.txt
 
       - name: Docker login to Artifact Registry
         run: |
