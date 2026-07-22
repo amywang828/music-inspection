@@ -42,7 +42,9 @@ jobs:
         env:
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS }}
         run: |
-          echo "$GCP_CREDENTIALS_JSON" > /tmp/gcp_creds.json
+          echo "$GCP_CREDENTIALS_JSON" | \
+            python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(json.dumps(d),end='')" \
+            > /tmp/gcp_creds.json
           export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp_creds.json
           gcloud auth application-default print-access-token \
             > /tmp/gcp_token.txt 2>/tmp/gcp_err.txt || true
