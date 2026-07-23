@@ -37,35 +37,34 @@ jobs:
           fi
           echo "Security report confirmed: $REPORT"
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (Service Account)
         id: gcp_token
         env:
-          GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-          # Strip UTF-8 BOM (PowerShell pipe 會加 BOM)
-          echo "$GCP_CREDENTIALS_JSON" | \
+          # Strip UTF-8 BOM (PowerShell 設定 Secret 可能帶 BOM)
+          echo "$GCP_SA_KEY" | \
             python3 -c "import sys,json,codecs; d=json.loads(codecs.decode(sys.stdin.buffer.read(),'utf-8-sig')); print(json.dumps(d),end='')" \
-            > /tmp/gcp_creds.json
-          # 從 JSON 取出 OAuth2 欄位（用 curl 直接換 token，跳過 gcloud 重驗證限制）
-          CLIENT_ID=$(python3 -c "import json; print(json.load(open('/tmp/gcp_creds.json'))['client_id'])")
-          CLIENT_SECRET=$(python3 -c "import json; print(json.load(open('/tmp/gcp_creds.json'))['client_secret'])")
-          REFRESH_TOKEN=$(python3 -c "import json; print(json.load(open('/tmp/gcp_creds.json'))['refresh_token'])")
-          RESP=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
-            -H "Content-Type: application/json" \
-            -d "{\"client_id\":\"$CLIENT_ID\",\"client_secret\":\"$CLIENT_SECRET\",\"refresh_token\":\"$REFRESH_TOKEN\",\"grant_type\":\"refresh_token\"}")
-          ACCESS_TOKEN=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null || echo "")
-          if [ -z "$ACCESS_TOKEN" ]; then
-            ERROR=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error','?'), '-', d.get('error_description',''))" 2>/dev/null || echo "unknown")
-            echo "::error::GCP OAuth2 失敗：$ERROR"
-            echo "::error::請在本機重新執行："
-            echo "::error::  gcloud auth application-default login"
-            echo "::error::  gh secret set GCP_CREDENTIALS --repo amywang828/music-inspection --input \"\$env:APPDATA\\gcloud\\application_default_credentials.json\""
-            rm -f /tmp/gcp_creds.json
+            > /tmp/sa_key.json 2>/tmp/sa_err.txt || true
+          if [ ! -s /tmp/sa_key.json ]; then
+            echo "::error::GCP_SA_KEY 不是有效的 JSON（或 Secret 未設定）："
+            cat /tmp/sa_err.txt || true
+            echo "::error::請在本機執行 SA 建立指令並設定 Secret GCP_SA_KEY。"
+            rm -f /tmp/sa_key.json /tmp/sa_err.txt
             exit 1
           fi
+          # 服務帳號沒有重驗證政策，activate 後可直接取得 token（金鑰長期有效）
+          if ! gcloud auth activate-service-account --key-file=/tmp/sa_key.json 2>/tmp/sa_err.txt; then
+            echo "::error::Service Account 認證失敗："
+            cat /tmp/sa_err.txt || true
+            rm -f /tmp/sa_key.json /tmp/sa_err.txt
+            exit 1
+          fi
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+          echo "::add-mask::$ACCESS_TOKEN"
           echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
-          rm -f /tmp/gcp_creds.json
+          rm -f /tmp/sa_key.json /tmp/sa_err.txt
 
       - name: Docker login to Artifact Registry
         run: |
